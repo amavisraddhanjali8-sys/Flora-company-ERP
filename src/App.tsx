@@ -1811,8 +1811,15 @@ export default function App() {
 
         <AnimatePresence>
           {isPrinterSettingsOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <motion.div
+              key="printer-settings-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            >
               <motion.div
+                key="printer-settings-card"
                 initial={{ opacity: 0, scale: 0.9, y: 40 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 40 }}
@@ -1901,7 +1908,7 @@ export default function App() {
                   </button>
                 </div>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -1909,6 +1916,7 @@ export default function App() {
         <AnimatePresence>
           {scannerMessage && (
             <motion.div
+              key="scanner-toast"
               initial={{ opacity: 0, y: 50, x: '-50%' }}
               animate={{ opacity: 1, y: 0, x: '-50%' }}
               exit={{ opacity: 0, y: 50, x: '-50%' }}

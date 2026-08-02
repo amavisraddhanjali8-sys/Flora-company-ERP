@@ -102,7 +102,13 @@ export default function PrintPortal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex flex-col bg-gray-900/95 backdrop-blur-xl print:hidden">
+      <motion.div
+        key="print-portal-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex flex-col bg-gray-900/95 backdrop-blur-xl print:hidden"
+      >
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
             @page {
@@ -334,7 +340,7 @@ export default function PrintPortal({
             </div>
           </div>
         </footer>
-      </div>
+      </motion.div>
 
       {/* Print Only Container */}
       <div className="hidden print:block print-only">

@@ -170,8 +170,15 @@ export default function ProcurementReportModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-md p-4 overflow-y-auto print:p-0 print:bg-white print:static print:z-auto">
+      <motion.div
+        key="procurement-report-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-md p-4 overflow-y-auto print:p-0 print:bg-white print:static print:z-auto"
+      >
         <motion.div 
+          key="procurement-report-card"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
@@ -461,7 +468,7 @@ export default function ProcurementReportModal({
 
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </AnimatePresence>
   );
 }

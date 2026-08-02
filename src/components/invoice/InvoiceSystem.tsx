@@ -600,8 +600,15 @@ export default function InvoiceSystem({
       {/* Payment Modal */}
       <AnimatePresence>
         {isPaymentModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            key="invoice-payment-modal-root"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          >
             <motion.div 
+              key="invoice-payment-overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -609,6 +616,7 @@ export default function InvoiceSystem({
               className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
             />
             <motion.div 
+              key="invoice-payment-card"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -684,15 +692,22 @@ export default function InvoiceSystem({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Invoice Form Modal */}
       <AnimatePresence>
         {isFormModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+          <motion.div
+            key="invoice-form-modal-root"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
+          >
             <motion.div 
+              key="invoice-form-overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -700,6 +715,7 @@ export default function InvoiceSystem({
               className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
             />
             <motion.div 
+              key="invoice-form-card"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1004,15 +1020,22 @@ export default function InvoiceSystem({
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirmation && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <motion.div
+            key="invoice-delete-modal-root"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          >
             <motion.div 
+              key="invoice-delete-overlay"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1020,6 +1043,7 @@ export default function InvoiceSystem({
               className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
             />
             <motion.div 
+              key="invoice-delete-card"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1047,7 +1071,7 @@ export default function InvoiceSystem({
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -1055,6 +1079,7 @@ export default function InvoiceSystem({
       <AnimatePresence>
         {notification && (
           <motion.div 
+            key="invoice-toast-notification"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}

@@ -256,6 +256,7 @@ export default function StockPurchaseModal({ isOpen, onClose, materials, supplie
                 <AnimatePresence>
                   {isSearching && (
                     <motion.div 
+                      key="stock-search-popup"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
