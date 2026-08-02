@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Package, DollarSign, Tag, Upload, Plus, Trash2, Flower2, Calendar, UserCheck, Palette, Hash, Sparkles, BookOpen, Warehouse } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FinishedProduct, Category, Material } from '../../types';
+import { DEFAULT_FALLBACK_MATERIALS } from '../../constants';
 import { cn } from '../../lib/utils';
 
 interface ProductModalProps {
@@ -74,38 +75,48 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
     }
   };
 
+  const getEffectiveMaterials = () => {
+    return (availableMaterials && availableMaterials.length > 0) ? availableMaterials : DEFAULT_FALLBACK_MATERIALS;
+  };
+
   const addMaterial = () => {
-    if (availableMaterials.length === 0) return;
+    const matList = getEffectiveMaterials();
+    const firstMat = matList[0];
     const newBOM = [
       ...(formData.materials || []),
-      { materialId: availableMaterials[0].id, quantity: 1, unit: availableMaterials[0].unit }
+      { materialId: firstMat.id, quantity: 1, unit: firstMat.unit || 'Units' }
     ];
-    setFormData({ ...formData, materials: newBOM });
+    setFormData(prev => ({ ...prev, materials: newBOM }));
   };
 
   const removeMaterial = (index: number) => {
     const newBOM = (formData.materials || []).filter((_, i) => i !== index);
-    setFormData({ ...formData, materials: newBOM });
+    setFormData(prev => ({ ...prev, materials: newBOM }));
   };
 
   const updateMaterial = (index: number, field: string, value: any) => {
+    const matList = getEffectiveMaterials();
     const newBOM = [...(formData.materials || [])];
     if (field === 'materialId') {
-      const selected = availableMaterials.find(m => m.id === value);
+      const selected = matList.find(m => m.id === value);
       newBOM[index] = { ...newBOM[index], materialId: value, unit: selected?.unit || 'Units' };
     } else {
       newBOM[index] = { ...newBOM[index], [field]: value };
     }
-    setFormData({ ...formData, materials: newBOM });
+    setFormData(prev => ({ ...prev, materials: newBOM }));
   };
 
   // Auto-calculate cost based on materials
   useEffect(() => {
-    const totalCost = (formData.materials || []).reduce((acc, item) => {
-      const material = availableMaterials.find(m => m.id === item.materialId);
-      return acc + (material?.costPerUnit || 0) * item.quantity;
-    }, 0);
-    setFormData(prev => ({ ...prev, costPrice: totalCost }));
+    const matList = getEffectiveMaterials();
+    const currentMaterials = formData.materials || [];
+    if (currentMaterials.length > 0) {
+      const totalCost = currentMaterials.reduce((acc, item) => {
+        const material = matList.find(m => m.id === item.materialId);
+        return acc + (material?.costPerUnit || 0) * (item.quantity || 0);
+      }, 0);
+      setFormData(prev => ({ ...prev, costPrice: Number(totalCost.toFixed(2)) }));
+    }
   }, [formData.materials, availableMaterials]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -518,40 +529,42 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
                     <button
                       type="button"
                       onClick={addMaterial}
-                      className="px-3 py-1.5 bg-sky-100 text-sky-700 hover:bg-sky-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1"
+                      className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
                     >
-                      <Plus size={12} /> Add Material Component
+                      <Plus size={14} /> Add Material Component
                     </button>
                   </div>
                   
                   <div className="space-y-2">
                     {formData.materials?.map((bomItem, index) => {
-                      const material = availableMaterials.find(m => m.id === bomItem.materialId);
+                      const matList = getEffectiveMaterials();
+                      const material = matList.find(m => m.id === bomItem.materialId);
                       return (
-                        <div key={index} className="flex gap-2 items-end p-3 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in">
+                        <div key={index} className="flex gap-2 items-end p-3 bg-slate-50 rounded-xl border border-slate-200">
                           <div className="flex-1 space-y-1">
                             <label className="text-[8px] font-black text-slate-500 uppercase">Material Resource</label>
                             <select
                               value={bomItem.materialId}
                               onChange={e => updateMaterial(index, 'materialId', e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-sky-500 transition-all cursor-pointer"
                             >
-                              {availableMaterials.map(m => (
-                                <option key={m.id} value={m.id}>{m.name} ({m.type})</option>
+                              {matList.map(m => (
+                                <option key={m.id} value={m.id}>{m.name} ({m.type}) — ${m.costPerUnit.toFixed(2)}/{m.unit}</option>
                               ))}
                             </select>
                           </div>
-                          <div className="w-20 space-y-1">
-                            <label className="text-[8px] font-black text-slate-500 uppercase">Qty ({bomItem.unit})</label>
+                          <div className="w-24 space-y-1">
+                            <label className="text-[8px] font-black text-slate-500 uppercase">Qty ({bomItem.unit || material?.unit || 'Units'})</label>
                             <input
                               type="number"
                               step="0.01"
+                              min="0.01"
                               value={bomItem.quantity}
-                              onChange={e => updateMaterial(index, 'quantity', Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-center"
+                              onChange={e => updateMaterial(index, 'quantity', Math.max(0, Number(e.target.value)))}
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-center focus:outline-none focus:border-sky-500"
                             />
                           </div>
-                          <div className="w-20 space-y-1">
+                          <div className="w-24 space-y-1">
                             <label className="text-[8px] font-black text-slate-500 uppercase text-center block">Subtotal</label>
                             <div className="h-[34px] flex items-center justify-center text-xs font-black text-slate-800 bg-white border border-slate-200 rounded-lg">
                               ${((material?.costPerUnit || 0) * (bomItem.quantity || 0)).toFixed(2)}
@@ -560,7 +573,8 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
                           <button
                             type="button"
                             onClick={() => removeMaterial(index)}
-                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                            title="Remove material component"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -569,7 +583,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
                     })}
                     {(!formData.materials || formData.materials.length === 0) && (
                       <div className="p-4 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                        <p className="text-[10px] font-black text-slate-400 uppercase italic">No assembly materials assigned yet.</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase italic">No assembly materials assigned yet. Click "Add Material Component" above to build the BOM.</p>
                       </div>
                     )}
                   </div>

@@ -71,6 +71,7 @@ export default function App() {
   const [users, setUsers] = useState<UserProfile[]>(MOCK_USERS);
   const [currentUser, setCurrentUser] = useState<UserProfile>(GUEST_USER);
   const [isAuthScreenOpen, setIsAuthScreenOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('storefront');
 
   const [language, setLanguage] = useState<Language>('en');
@@ -224,6 +225,18 @@ export default function App() {
       type: 'warning',
       category: 'system'
     });
+  };
+
+  const handleLoginSuccess = (user: UserProfile) => {
+    // Sync user into system state if auto-created or new
+    setUsers(prev => {
+      if (prev.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())) {
+        return prev;
+      }
+      return [...prev, user];
+    });
+    handleSwitchUser(user);
+    setIsAuthScreenOpen(false);
   };
 
   const handleSwitchUser = (user: UserProfile) => {
@@ -1177,6 +1190,7 @@ export default function App() {
           currentUser={currentUser}
           companySettings={companySettings}
           onOpenAuthScreen={(mode) => {
+            setAuthInitialMode(mode || 'login');
             setIsAuthScreenOpen(true);
           }}
           onPlaceCustomerOrder={handlePlaceCustomerOrder}
@@ -1219,10 +1233,8 @@ export default function App() {
           isOpen={isAuthScreenOpen}
           onClose={() => setIsAuthScreenOpen(false)}
           users={users}
-          onLoginSuccess={(user) => {
-            handleSwitchUser(user);
-            setIsAuthScreenOpen(false);
-          }}
+          initialMode={authInitialMode}
+          onLoginSuccess={handleLoginSuccess}
           onRegisterUser={(newUser) => {
             handleRegisterUser(newUser);
           }}
@@ -2046,10 +2058,8 @@ export default function App() {
           isOpen={isAuthScreenOpen}
           onClose={() => setIsAuthScreenOpen(false)}
           users={users}
-          onLoginSuccess={(user) => {
-            handleSwitchUser(user);
-            setIsAuthScreenOpen(false);
-          }}
+          initialMode={authInitialMode}
+          onLoginSuccess={handleLoginSuccess}
           onRegisterUser={(newUser) => {
             handleRegisterUser(newUser);
           }}

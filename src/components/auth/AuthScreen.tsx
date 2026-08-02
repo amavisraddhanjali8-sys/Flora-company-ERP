@@ -53,6 +53,13 @@ export default function AuthScreen({
   const [mode, setMode] = useState<'login' | 'signup' | 'pending'>(initialMode);
   const [portalType, setPortalType] = useState<'customer' | 'staff'>('customer');
   
+  // Sync initialMode when modal opens or initialMode changes
+  React.useEffect(() => {
+    setMode(initialMode);
+    setAuthError(null);
+    setAuthSuccessMsg(null);
+  }, [initialMode, isOpen]);
+
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,6 +94,11 @@ export default function AuthScreen({
       return;
     }
 
+    if (!password || !password.trim()) {
+      setAuthError('Please enter your account password to sign in.');
+      return;
+    }
+
     const foundUser = users.find(u => u.email.toLowerCase() === targetEmail);
 
     if (!foundUser) {
@@ -94,7 +106,7 @@ export default function AuthScreen({
         // Auto-create customer user
         const newCustomer: UserProfile = {
           id: `cust-${Date.now()}`,
-          name: email.split('@')[0] || 'Web Customer',
+          name: fullName.trim() || email.split('@')[0] || 'Web Customer',
           email: targetEmail,
           role: 'Client',
           status: 'Active',
@@ -103,13 +115,18 @@ export default function AuthScreen({
         onLoginSuccess(newCustomer);
         return;
       }
-      setAuthError('Account not found. Please check your credentials or switch to Sign Up.');
+      setAuthError('No staff account found matching this email address. Please check your email or switch to Sign Up.');
       return;
     }
 
     if (foundUser.status === 'Pending Approval') {
       setPendingUser(foundUser);
       setMode('pending');
+      return;
+    }
+
+    if (foundUser.status === 'Deactivated') {
+      setAuthError('Your account has been deactivated. Please contact an administrator.');
       return;
     }
 
@@ -130,13 +147,30 @@ export default function AuthScreen({
 
     const cleanEmail = email.trim().toLowerCase();
 
+    if (!fullName.trim()) {
+      setAuthError('Please enter your full name.');
+      return;
+    }
+
     if (!isValidEmail(cleanEmail)) {
       setAuthError('Please enter a valid, real email address format (e.g. name@domain.com)');
       return;
     }
 
+    // Check for existing duplicate account email
+    const existingUser = users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existingUser) {
+      setAuthError('An account with this email address already exists. Please sign in instead.');
+      return;
+    }
+
     if (!acceptTerms) {
       setAuthError('Please agree to the Terms & Privacy Policy to create an account.');
+      return;
+    }
+
+    if (!password) {
+      setAuthError('Please enter a password.');
       return;
     }
 
@@ -152,11 +186,11 @@ export default function AuthScreen({
 
     if (portalType === 'customer' || signupRole === 'Client') {
       const newCustomerProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
-        name: fullName || cleanEmail.split('@')[0] || 'New Customer',
+        name: fullName.trim() || cleanEmail.split('@')[0] || 'New Customer',
         email: cleanEmail,
         role: 'Client',
         status: 'Pending Approval',
-        companyName: companyName || undefined
+        companyName: companyName.trim() || undefined
       };
 
       onRegisterUser(newCustomerProfile);
@@ -170,11 +204,11 @@ export default function AuthScreen({
     }
 
     const newStaffProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
-      name: fullName || 'Staff Applicant',
+      name: fullName.trim() || 'Staff Applicant',
       email: cleanEmail,
       role: signupRole,
       status: 'Pending Approval',
-      companyName: companyName
+      companyName: companyName.trim() || undefined
     };
 
     onRegisterUser(newStaffProfile);

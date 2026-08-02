@@ -43,6 +43,9 @@ import { ROLE_CONFIGS } from '../../lib/rbac';
 import { cn } from '../../lib/utils';
 import { useNotifications } from '../../context/NotificationContext';
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const isValidEmail = (emailStr: string) => EMAIL_REGEX.test(emailStr.trim());
+
 interface UserManagementPortalProps {
   users: UserProfile[];
   currentUser: UserProfile;
@@ -297,21 +300,52 @@ export default function UserManagementPortal({
 
   const handleAddUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newEmail.trim()) return;
+    const cleanName = newName.trim();
+    const cleanEmail = newEmail.trim().toLowerCase();
+
+    if (!cleanName) {
+      addNotification({
+        title: 'Validation Error',
+        message: 'Full name is required to create a user account.',
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      addNotification({
+        title: 'Validation Error',
+        message: 'Please enter a valid email address format (e.g. alex@domain.com).',
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
+    if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
+      addNotification({
+        title: 'Duplicate Account',
+        message: `An account with email "${cleanEmail}" already exists.`,
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
 
     onAddUser({
-      name: newName,
-      email: newEmail,
+      name: cleanName,
+      email: cleanEmail,
       role: newRole,
       status: 'Active',
-      companyName: newCompany || 'Flora & Verdant Biophilic Design',
-      phone: newPhone,
+      companyName: newCompany.trim() || 'Flora & Verdant Biophilic Design',
+      phone: newPhone.trim(),
       mfaEnabled: newMfa
     });
 
     addNotification({
       title: 'Staff / Admin Created',
-      message: `Created account for ${newName} as ${newRole}.`,
+      message: `Created account for ${cleanName} as ${newRole}.`,
       type: 'success',
       category: 'system'
     });
@@ -340,6 +374,39 @@ export default function UserManagementPortal({
     e.preventDefault();
     if (!userToEdit) return;
 
+    const cleanName = editName.trim();
+    const cleanEmail = editEmail.trim().toLowerCase();
+
+    if (!cleanName) {
+      addNotification({
+        title: 'Validation Error',
+        message: 'Name cannot be empty.',
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      addNotification({
+        title: 'Validation Error',
+        message: 'Please enter a valid email address format.',
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
+    if (users.some(u => u.id !== userToEdit.id && u.email.toLowerCase() === cleanEmail)) {
+      addNotification({
+        title: 'Duplicate Email',
+        message: `Another account with email "${cleanEmail}" already exists.`,
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
     if (userToEdit.role === 'Super Admin' && editRole !== 'Super Admin' && activeAdminsCount <= 1) {
       addNotification({
         title: 'Role Update Blocked',
@@ -350,14 +417,24 @@ export default function UserManagementPortal({
       return;
     }
 
+    if (userToEdit.role === 'Super Admin' && editStatus !== 'Active' && activeAdminsCount <= 1) {
+      addNotification({
+        title: 'Status Change Blocked',
+        message: 'Cannot deactivate or change status of the last active Super Admin.',
+        type: 'error',
+        category: 'system'
+      });
+      return;
+    }
+
     const updated: UserProfile = {
       ...userToEdit,
-      name: editName,
-      email: editEmail,
+      name: cleanName,
+      email: cleanEmail,
       role: editRole,
-      companyName: editCompany,
-      phone: editPhone,
-      taxId: editTaxId,
+      companyName: editCompany.trim(),
+      phone: editPhone.trim(),
+      taxId: editTaxId.trim(),
       status: editStatus,
       mfaEnabled: editMfa
     };
@@ -365,7 +442,7 @@ export default function UserManagementPortal({
     onUpdateUser(updated);
     addNotification({
       title: 'Account Settings Saved',
-      message: `Profile and permissions updated for ${editName}.`,
+      message: `Profile and permissions updated for ${cleanName}.`,
       type: 'success',
       category: 'system'
     });
