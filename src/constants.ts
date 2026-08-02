@@ -118,6 +118,7 @@ export const MOCK_USERS: UserProfile[] = [
     phone: '+94 11 234 5678',
     createdAt: '2026-01-01T08:00:00Z',
     mfaEnabled: false,
+    emailVerified: true,
   }
 ];
 

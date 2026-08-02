@@ -608,5 +608,6 @@ export interface UserProfile {
   approvedAt?: string;
   approvedBy?: string;
   mfaEnabled?: boolean;
+  emailVerified?: boolean;
   customAllowedTabs?: string[];
 }

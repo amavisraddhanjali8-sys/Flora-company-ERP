@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Globe,
   Check,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { UserProfile, UserRole } from '../../types';
 import { ROLE_CONFIGS } from '../../lib/rbac';
@@ -35,6 +36,10 @@ interface AuthScreenProps {
   language?: string;
 }
 
+// Strict RFC 5322 compliant email regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const isValidEmail = (emailStr: string) => EMAIL_REGEX.test(emailStr.trim());
+
 export default function AuthScreen({ 
   isOpen = true,
   users, 
@@ -45,7 +50,7 @@ export default function AuthScreen({
 }: AuthScreenProps) {
   if (!isOpen) return null;
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'mfa' | 'pending'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'pending'>(initialMode);
   const [portalType, setPortalType] = useState<'customer' | 'staff'>('customer');
   
   // Form State
@@ -60,37 +65,33 @@ export default function AuthScreen({
   const [signupRole, setSignupRole] = useState<UserRole>('Client');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
-  
-  // Status & MFA
-  const [mfaCode, setMfaCode] = useState(['', '', '', '', '', '']);
+
+  // Status & User State
   const [pendingUser, setPendingUser] = useState<UserProfile | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
-
-  // Password strength score (0-4)
-  const calculatePasswordStrength = (pass: string) => {
-    let score = 0;
-    if (pass.length >= 8) score++;
-    if (/[A-Z]/.test(pass)) score++;
-    if (/[0-9]/.test(pass)) score++;
-    if (/[^A-Za-z0-9]/.test(pass)) score++;
-    return score;
-  };
-
-  const passwordStrength = calculatePasswordStrength(password);
 
   // Handle Login Submission
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthSuccessMsg(null);
 
     const targetEmail = email.trim().toLowerCase();
+
+    // Validate email format
+    if (!isValidEmail(targetEmail)) {
+      setAuthError('Invalid email format. Please enter a valid email address (e.g. alex@domain.com)');
+      return;
+    }
+
     const foundUser = users.find(u => u.email.toLowerCase() === targetEmail);
 
     if (!foundUser) {
-      // Auto-create customer if logging in with email not found in customer mode
       if (portalType === 'customer') {
+        // Auto-create customer user
         const newCustomer: UserProfile = {
           id: `cust-${Date.now()}`,
           name: email.split('@')[0] || 'Web Customer',
@@ -117,45 +118,22 @@ export default function AuthScreen({
       return;
     }
 
-    // Check if MFA is enabled (Bypassed for Super Admin)
-    const isAdmin = foundUser.role === 'Super Admin';
-    if (foundUser.mfaEnabled && !isAdmin) {
-      setPendingUser(foundUser);
-      setMode('mfa');
-      return;
-    }
-
+    // Direct Login with no MFA or Email Verification code required
     onLoginSuccess(foundUser);
-  };
-
-  // Quick One-Click Demo Login
-  const handleDemoLogin = (user: UserProfile) => {
-    if (user.status === 'Pending Approval') {
-      setPendingUser(user);
-      setMode('pending');
-      return;
-    }
-    onLoginSuccess(user);
-  };
-
-  // Social Login Handler (Google / Apple)
-  const handleSocialLogin = (provider: 'Google' | 'Apple') => {
-    setAuthError(null);
-    const demoCustomer = users.find(u => u.role === 'Client') || {
-      id: `cust-social-${Date.now()}`,
-      name: `${provider} User`,
-      email: `user.${provider.toLowerCase()}@example.com`,
-      role: 'Client' as UserRole,
-      status: 'Active',
-      createdAt: new Date().toISOString()
-    };
-    onLoginSuccess(demoCustomer);
   };
 
   // Handle Sign Up Submission
   const handleSignupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthSuccessMsg(null);
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(cleanEmail)) {
+      setAuthError('Please enter a valid, real email address format (e.g. name@domain.com)');
+      return;
+    }
 
     if (!acceptTerms) {
       setAuthError('Please agree to the Terms & Privacy Policy to create an account.');
@@ -172,11 +150,10 @@ export default function AuthScreen({
       return;
     }
 
-    // Customer Sign Up requires Admin Approval
     if (portalType === 'customer' || signupRole === 'Client') {
       const newCustomerProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
-        name: fullName || email.split('@')[0] || 'New Customer',
-        email: email,
+        name: fullName || cleanEmail.split('@')[0] || 'New Customer',
+        email: cleanEmail,
         role: 'Client',
         status: 'Pending Approval',
         companyName: companyName || undefined
@@ -192,14 +169,12 @@ export default function AuthScreen({
       return;
     }
 
-    // Internal Staff / Supplier Sign Up requires Admin Approval
     const newStaffProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
       name: fullName || 'Staff Applicant',
-      email: email,
+      email: cleanEmail,
       role: signupRole,
       status: 'Pending Approval',
-      companyName: companyName,
-      mfaEnabled: signupRole === 'Finance Manager'
+      companyName: companyName
     };
 
     onRegisterUser(newStaffProfile);
@@ -209,19 +184,6 @@ export default function AuthScreen({
       createdAt: new Date().toISOString()
     });
     setMode('pending');
-  };
-
-  // Handle MFA Verification
-  const handleMfaSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const codeStr = mfaCode.join('');
-    if (codeStr.length < 6) {
-      setAuthError('Please enter all 6 digits of your authentication code.');
-      return;
-    }
-    if (pendingUser) {
-      onLoginSuccess(pendingUser);
-    }
   };
 
   return (
@@ -238,7 +200,7 @@ export default function AuthScreen({
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-6 right-6 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 transition-all shadow-sm"
+            className="absolute top-6 right-6 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 transition-all shadow-sm cursor-pointer"
             title="Close modal"
           >
             <X size={18} />
@@ -254,11 +216,23 @@ export default function AuthScreen({
               {/* Main Tagline */}
               <div className="space-y-3 pt-4">
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                  Fast, Efficient and Productive
+                  Petal Lover System
                 </h1>
                 <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-md">
-                  Unified portal for instant customer ordering, live botanical stock availability, and secure back-office ERP operations.
+                  Unified portal for instant customer ordering, live botanical stock availability, and streamlined order management.
                 </p>
+              </div>
+
+              {/* Core System Feature Highlights */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center gap-2.5 text-xs text-slate-700 font-bold bg-white/60 p-2.5 rounded-2xl border border-white/80 shadow-2xs">
+                  <Flower2 size={16} className="text-emerald-600 shrink-0" />
+                  <span>Instant Customer Ordering & Live Botanical Inventory</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-xs text-slate-700 font-bold bg-white/60 p-2.5 rounded-2xl border border-white/80 shadow-2xs">
+                  <ShieldCheck size={16} className="text-blue-600 shrink-0" />
+                  <span>Role-Based Operational Access Control</span>
+                </div>
               </div>
             </div>
 
@@ -270,7 +244,7 @@ export default function AuthScreen({
                 <button
                   type="button"
                   onClick={() => setIsLangOpen(!isLangOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white/90 hover:bg-white rounded-xl border border-slate-200/80 font-bold text-slate-800 shadow-sm transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/90 hover:bg-white rounded-xl border border-slate-200/80 font-bold text-slate-800 shadow-sm transition-all cursor-pointer"
                 >
                   <span className="text-base">🇺🇸</span>
                   <span>{selectedLanguage}</span>
@@ -284,7 +258,7 @@ export default function AuthScreen({
                         key={lang}
                         type="button"
                         onClick={() => { setSelectedLanguage(lang); setIsLangOpen(false); }}
-                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 font-semibold text-slate-700 flex items-center justify-between"
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 font-semibold text-slate-700 flex items-center justify-between cursor-pointer"
                       >
                         <span>{lang}</span>
                         {selectedLanguage === lang && <Check size={12} className="text-blue-600" />}
@@ -296,9 +270,9 @@ export default function AuthScreen({
 
               {/* Footer Links */}
               <div className="flex items-center gap-4 text-blue-600 font-bold">
-                <button type="button" onClick={() => alert('Terms of Service: Instant customer orders are processed immediately. Internal ERP access requires staff authorization.')} className="hover:underline">Terms</button>
-                <button type="button" onClick={() => alert('Plans: Standard Public Storefront (Free) & Enterprise B2B Custom Tier.')} className="hover:underline">Plans</button>
-                <button type="button" onClick={() => alert('Contact Support: support@flora-verdant.com')} className="hover:underline">Contact Us</button>
+                <button type="button" onClick={() => alert('Terms of Service: Instant customer orders are processed immediately. Internal ERP access requires staff authorization.')} className="hover:underline cursor-pointer">Terms</button>
+                <button type="button" onClick={() => alert('Plans: Standard Public Storefront (Free) & Enterprise B2B Custom Tier.')} className="hover:underline cursor-pointer">Plans</button>
+                <button type="button" onClick={() => alert('Contact Support: support@petalloversystem.com')} className="hover:underline cursor-pointer">Contact Us</button>
               </div>
 
             </div>
@@ -312,16 +286,16 @@ export default function AuthScreen({
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : mode === 'mfa' ? 'Verify Code' : 'Review Status'}
+                  {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Review Status'}
                 </h2>
                 
                 {/* Mode Switcher pill */}
                 <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold">
                   <button
                     type="button"
-                    onClick={() => { setMode('login'); setAuthError(null); }}
+                    onClick={() => { setMode('login'); setAuthError(null); setAuthSuccessMsg(null); }}
                     className={cn(
-                      "px-3 py-1 rounded-lg transition-all",
+                      "px-3 py-1 rounded-lg transition-all cursor-pointer",
                       mode === 'login' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-900"
                     )}
                   >
@@ -329,9 +303,9 @@ export default function AuthScreen({
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setMode('signup'); setAuthError(null); }}
+                    onClick={() => { setMode('signup'); setAuthError(null); setAuthSuccessMsg(null); }}
                     className={cn(
-                      "px-3 py-1 rounded-lg transition-all",
+                      "px-3 py-1 rounded-lg transition-all cursor-pointer",
                       mode === 'signup' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-900"
                     )}
                   >
@@ -340,7 +314,7 @@ export default function AuthScreen({
                 </div>
               </div>
               <p className="text-xs text-slate-400 font-medium">
-                {portalType === 'customer' ? 'Instant Customer Ordering & Track Orders' : 'Restricted Internal ERP Staff Gateway'}
+                {portalType === 'customer' ? 'Customer Ordering Portal' : 'Internal ERP Staff Gateway'}
               </p>
             </div>
 
@@ -350,7 +324,7 @@ export default function AuthScreen({
                 type="button"
                 onClick={() => { setPortalType('customer'); setSignupRole('Client'); }}
                 className={cn(
-                  "py-2 rounded-xl transition-all flex items-center justify-center gap-1.5",
+                  "py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                   portalType === 'customer' ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-900"
                 )}
               >
@@ -361,7 +335,7 @@ export default function AuthScreen({
                 type="button"
                 onClick={() => { setPortalType('staff'); setSignupRole('Sales Executive'); }}
                 className={cn(
-                  "py-2 rounded-xl transition-all flex items-center justify-center gap-1.5",
+                  "py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                   portalType === 'staff' ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"
                 )}
               >
@@ -377,13 +351,20 @@ export default function AuthScreen({
               </div>
             )}
 
+            {authSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2 text-emerald-800 text-xs font-medium">
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                <span className="flex-1">{authSuccessMsg}</span>
+              </div>
+            )}
+
             {/* SIGN IN FORM */}
             {mode === 'login' && (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
                   <input
                     type="email"
                     required
@@ -401,7 +382,7 @@ export default function AuthScreen({
                     <button
                       type="button"
                       onClick={() => alert(`Password reset link sent to ${email || 'your email'}.`)}
-                      className="text-[11px] font-bold text-blue-600 hover:underline"
+                      className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
                     >
                       Forgot?
                     </button>
@@ -418,7 +399,7 @@ export default function AuthScreen({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -442,16 +423,16 @@ export default function AuthScreen({
                     onClick={() => {
                       if (users[0]) onLoginSuccess(users[0]);
                     }}
-                    className="flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-blue-600"
+                    className="flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-blue-600 cursor-pointer"
                   >
                     <Fingerprint size={14} className="text-blue-600" /> Touch ID / Biometric
                   </button>
                 </div>
 
-                {/* Primary Action Button */}
+                {/* Primary Sign In Button */}
                 <button
                   type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
                 >
                   <span>Sign In</span>
                   <ArrowRight size={16} />
@@ -462,8 +443,8 @@ export default function AuthScreen({
                   Don't have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => { setMode('signup'); setAuthError(null); }}
-                    className="text-blue-600 font-bold hover:underline"
+                    onClick={() => { setMode('signup'); setAuthError(null); setAuthSuccessMsg(null); }}
+                    className="text-blue-600 font-bold hover:underline cursor-pointer"
                   >
                     Sign Up
                   </button>
@@ -491,7 +472,7 @@ export default function AuthScreen({
 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
                   <input
                     type="email"
                     required
@@ -517,7 +498,7 @@ export default function AuthScreen({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -547,7 +528,7 @@ export default function AuthScreen({
                     <select
                       value={signupRole}
                       onChange={e => setSignupRole(e.target.value as UserRole)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600 cursor-pointer"
                     >
                       <option value="Sales Executive">Sales Executive</option>
                       <option value="Production Manager">Production Manager</option>
@@ -567,14 +548,14 @@ export default function AuthScreen({
                       onChange={e => setAcceptTerms(e.target.checked)}
                       className="rounded border-slate-300 accent-blue-600"
                     />
-                    <span>I accept the <button type="button" onClick={() => alert('Terms & Privacy Policy')} className="text-blue-600 font-bold hover:underline">Term</button></span>
+                    <span>I accept the <button type="button" onClick={() => alert('Terms & Privacy Policy')} className="text-blue-600 font-bold hover:underline cursor-pointer">Terms</button></span>
                   </label>
                 </div>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
                 >
                   <span>Sign Up</span>
                   <ArrowRight size={16} />
@@ -585,56 +566,13 @@ export default function AuthScreen({
                   Already have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => { setMode('login'); setAuthError(null); }}
-                    className="text-blue-600 font-bold hover:underline"
+                    onClick={() => { setMode('login'); setAuthError(null); setAuthSuccessMsg(null); }}
+                    className="text-blue-600 font-bold hover:underline cursor-pointer"
                   >
                     Sign In
                   </button>
                 </div>
 
-              </form>
-            )}
-
-            {/* MFA MODE */}
-            {mode === 'mfa' && (
-              <form onSubmit={handleMfaSubmit} className="space-y-4 py-2">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl mx-auto flex items-center justify-center">
-                    <ShieldCheck size={24} />
-                  </div>
-                  <h3 className="font-extrabold text-slate-900 text-sm">Two-Factor Security Code</h3>
-                  <p className="text-xs text-slate-500">
-                    Sent to <strong>{pendingUser?.email}</strong> ({pendingUser?.role})
-                  </p>
-                </div>
-
-                <div className="flex justify-center gap-2 my-2">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <input
-                      key={i}
-                      type="text"
-                      maxLength={1}
-                      value={mfaCode[i]}
-                      onChange={e => {
-                        const val = e.target.value;
-                        const newCode = [...mfaCode];
-                        newCode[i] = val;
-                        setMfaCode(newCode);
-                        if (val && e.target.nextElementSibling) {
-                          (e.target.nextElementSibling as HTMLInputElement).focus();
-                        }
-                      }}
-                      className="w-9 h-11 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-600 focus:bg-white focus:outline-none"
-                    />
-                  ))}
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
-                >
-                  Verify & Enter System
-                </button>
               </form>
             )}
 
@@ -647,26 +585,23 @@ export default function AuthScreen({
                 <div className="space-y-1">
                   <h3 className="font-extrabold text-slate-900 text-sm">Account Pending Admin Approval</h3>
                   <p className="text-xs text-slate-500">
-                    Account <strong>{pendingUser?.name}</strong> ({pendingUser?.role}) has been submitted.
+                    Account <strong>{pendingUser?.name}</strong> ({pendingUser?.role}) has been submitted for review.
                   </p>
                 </div>
 
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-left text-[11px] text-amber-900 space-y-1">
                   <div className="font-bold flex items-center gap-1 text-amber-800">
-                    <AlertCircle size={14} /> Admin Approval Notification Sent
+                    <Clock size={14} className="text-amber-600" /> Registration Under Review
                   </div>
                   <p>
-                    A registration request has been sent to the Super Admin to approve your account.
-                  </p>
-                  <p className="text-[10px] text-amber-700 font-semibold pt-1">
-                    🔒 Cart balance (LKR) and direct ordering are restricted to approved active customer accounts only. Once approved, you can sign in to view your cart & place orders!
+                    A registration request was sent to the Super Admin. Once approved, you can sign in to access your portal.
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => { setMode('login'); setPendingUser(null); }}
-                  className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all"
+                  onClick={() => { setMode('login'); setPendingUser(null); setAuthError(null); setAuthSuccessMsg(null); }}
+                  className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all cursor-pointer"
                 >
                   Back to Sign In
                 </button>
@@ -682,4 +617,6 @@ export default function AuthScreen({
     </div>
   );
 }
+
+
 

@@ -600,7 +600,6 @@ export default function UserManagementPortal({
                     <th className="p-4 pl-5">User & Business Identity</th>
                     <th className="p-4">Assigned System Role</th>
                     <th className="p-4">Account Status</th>
-                    <th className="p-4">Security / 2FA</th>
                     <th className="p-4">Custom Permissions</th>
                     <th className="p-4 pr-5 text-right">Admin Actions</th>
                   </tr>
@@ -608,7 +607,7 @@ export default function UserManagementPortal({
                 <tbody className="divide-y divide-gray-100 text-xs font-medium">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="p-12 text-center text-gray-400 font-medium">
+                      <td colSpan={5} className="p-12 text-center text-gray-400 font-medium">
                         <div className="max-w-xs mx-auto space-y-2">
                           <Users className="w-10 h-10 text-gray-300 mx-auto" />
                           <p className="text-sm font-bold text-gray-600">No user accounts found</p>
@@ -696,22 +695,6 @@ export default function UserManagementPortal({
                               {user.status === 'Rejected' && <X size={12} />}
                               <span>{user.status}</span>
                             </span>
-                          </td>
-
-                          <td className="p-4">
-                            <button
-                              onClick={() => handleToggleMfa(user)}
-                              className={cn(
-                                "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer whitespace-nowrap",
-                                user.mfaEnabled 
-                                  ? "bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-200" 
-                                  : "bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-200"
-                              )}
-                              title="Click to toggle MFA policy"
-                            >
-                              <Lock size={11} className={user.mfaEnabled ? "text-purple-600" : "text-gray-400"} />
-                              <span>{user.mfaEnabled ? 'MFA Enforced' : 'Standard Auth'}</span>
-                            </button>
                           </td>
 
                           <td className="p-4">
@@ -921,30 +904,17 @@ export default function UserManagementPortal({
               </div>
             </div>
 
-            <div className="p-5 bg-gradient-to-br from-sky-50 to-blue-50/60 rounded-2xl border border-sky-200 space-y-3">
-              <div className="flex items-center gap-2 text-sky-900 font-black text-sm">
-                <Lock size={18} className="text-sky-600" />
-                <span>Two-Factor Authentication (2FA) Security</span>
+            <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-2xl border border-emerald-200 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-900 font-black text-sm">
+                <ShieldCheck size={18} className="text-emerald-600" />
+                <span>Role-Based Access Control Policy</span>
               </div>
-              <p className="text-xs text-sky-800/80 leading-relaxed">
-                Multi-Factor Authentication (2FA) is enforced on high-risk admin and financial management accounts for regulatory compliance.
+              <p className="text-xs text-emerald-800/80 leading-relaxed">
+                Direct role-based authentication is active across all system roles with custom portal module overrides.
               </p>
-              <div className="pt-2 flex items-center justify-between text-xs font-bold text-sky-900 border-t border-sky-200/60">
-                <span>Enforce MFA for Admin & Finance:</span>
-                <button
-                  onClick={() => {
-                    setForceMfaForAdminFinance(!forceMfaForAdminFinance);
-                    addNotification({
-                      title: 'Policy Updated',
-                      message: `Global MFA policy ${!forceMfaForAdminFinance ? 'Enforced' : 'Relaxed'}.`,
-                      type: 'info',
-                      category: 'system'
-                    });
-                  }}
-                  className="cursor-pointer text-sky-700 hover:text-sky-900"
-                >
-                  {forceMfaForAdminFinance ? <ToggleRight size={28} className="text-purple-600" /> : <ToggleLeft size={28} className="text-gray-400" />}
-                </button>
+              <div className="pt-2 flex items-center justify-between text-xs font-bold text-emerald-900 border-t border-emerald-200/60">
+                <span>Direct Access Authentication:</span>
+                <span className="px-2.5 py-0.5 bg-emerald-600 text-white rounded-full font-black">Active</span>
               </div>
             </div>
           </div>
@@ -1087,16 +1057,6 @@ export default function UserManagementPortal({
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100">
-                <span className="text-xs font-bold text-purple-900">Enforce Multi-Factor Auth (2FA)</span>
-                <input
-                  type="checkbox"
-                  checked={newMfa}
-                  onChange={e => setNewMfa(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
-                />
-              </div>
-
               <div className="pt-3 flex gap-2">
                 <button
                   type="button"
@@ -1207,16 +1167,6 @@ export default function UserManagementPortal({
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-purple-600"
                   />
                 </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100">
-                <span className="text-xs font-bold text-purple-900">Enforce Multi-Factor Auth (2FA)</span>
-                <input
-                  type="checkbox"
-                  checked={editMfa}
-                  onChange={e => setEditMfa(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
-                />
               </div>
 
               <div className="pt-3 flex gap-2">
