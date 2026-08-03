@@ -31,6 +31,7 @@ import { translations, Language } from './i18n';
 import VirtualKeyboard from './components/layout/VirtualKeyboard';
 import Lobby from './components/layout/Lobby';
 import { useNotifications } from './context/NotificationContext';
+import { usePersistentState } from './hooks/usePersistentState';
 import SystemAuditLog from './components/layout/SystemAuditLog';
 import ConfirmModal from './components/layout/ConfirmModal';
 import { canAccessTab, ROLE_CONFIGS } from './lib/rbac';
@@ -69,8 +70,8 @@ const GUEST_USER: UserProfile = {
 
 export default function App() {
   const { addNotification } = useNotifications();
-  const [users, setUsers] = useState<UserProfile[]>(MOCK_USERS);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(GUEST_USER);
+  const [users, setUsers] = usePersistentState<UserProfile[]>('flora_users_v2', MOCK_USERS);
+  const [currentUser, setCurrentUser] = usePersistentState<UserProfile>('flora_current_user_v2', GUEST_USER);
   const [isAuthScreenOpen, setIsAuthScreenOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
@@ -81,15 +82,15 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const t = translations[language];
   
-  const [finishedProducts, setFinishedProducts] = useState<FinishedProduct[]>(FINISHED_PRODUCTS);
-  const [materials, setMaterials] = useState<Material[]>(MATERIALS);
-  const [categories, setCategories] = useState<string[]>(FLORA_CATEGORIES);
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(MOCK_SUPPLIERS);
+  const [finishedProducts, setFinishedProducts] = usePersistentState<FinishedProduct[]>('flora_finished_products_v2', FINISHED_PRODUCTS);
+  const [materials, setMaterials] = usePersistentState<Material[]>('flora_materials_v2', MATERIALS);
+  const [categories, setCategories] = usePersistentState<string[]>('flora_categories_v2', FLORA_CATEGORIES);
+  const [clients, setClients] = usePersistentState<Client[]>('flora_clients_v2', MOCK_CLIENTS);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('flora_suppliers_v2', MOCK_SUPPLIERS);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [orders, setOrders] = usePersistentState<Order[]>('flora_orders_v2', []);
+  const [rfqs, setRfqs] = usePersistentState<RFQ[]>('flora_rfqs_v2', []);
   const [initialRfqOrderId, setInitialRfqOrderId] = useState<string | null>(null);
   const [initialRfqItem, setInitialRfqItem] = useState<{
     type: 'Material' | 'Product' | 'Service' | 'Support';
@@ -101,14 +102,14 @@ export default function App() {
     specs?: string;
     items?: { materialId?: string; name: string; quantity: number; unit: string; specs?: string }[];
   } | null>(null);
-  const [supplierQuotations, setSupplierQuotations] = useState<SupplierQuotation[]>([]);
-  const [procurementOrders, setProcurementOrders] = useState<ProcurementOrder[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
-  const [quotations, setQuotations] = useState<Quotation[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [ledgerAccounts, setLedgerAccounts] = useState<LedgerAccount[]>(INITIAL_ACCOUNTS);
-  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  const [supplierQuotations, setSupplierQuotations] = usePersistentState<SupplierQuotation[]>('flora_supplier_quotations_v2', []);
+  const [procurementOrders, setProcurementOrders] = usePersistentState<ProcurementOrder[]>('flora_procurement_orders_v2', []);
+  const [transactions, setTransactions] = usePersistentState<Transaction[]>('flora_transactions_v2', MOCK_TRANSACTIONS);
+  const [quotations, setQuotations] = usePersistentState<Quotation[]>('flora_quotations_v2', []);
+  const [invoices, setInvoices] = usePersistentState<Invoice[]>('flora_invoices_v2', []);
+  const [expenses, setExpenses] = usePersistentState<Expense[]>('flora_expenses_v2', []);
+  const [ledgerAccounts, setLedgerAccounts] = usePersistentState<LedgerAccount[]>('flora_ledger_accounts_v2', INITIAL_ACCOUNTS);
+  const [ledgerEntries, setLedgerEntries] = usePersistentState<LedgerEntry[]>('flora_ledger_entries_v2', []);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPrinterSettingsOpen, setIsPrinterSettingsOpen] = useState(false);
   const [revisingOrderId, setRevisingOrderId] = useState<string | null>(null);
@@ -124,8 +125,8 @@ export default function App() {
     otherChargesList: { id: string; description: string; amount: number; }[];
     total: number;
   } | null>(null);
-  const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_SETTINGS);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
+  const [companySettings, setCompanySettings] = usePersistentState<CompanySettings>('flora_company_settings_v2', INITIAL_SETTINGS);
+  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('flora_audit_logs_v2', MOCK_AUDIT_LOGS);
   const [orderToRevise, setOrderToRevise] = useState<Transaction | null>(null);
   const [orderToDeleteId, setOrderToDeleteId] = useState<string | null>(null);
   const [isClearOrdersConfirmOpen, setIsClearOrdersConfirmOpen] = useState(false);

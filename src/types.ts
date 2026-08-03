@@ -327,6 +327,7 @@ export interface Order {
   quotationId?: string;
   notes?: string;
   expectedDeliveryDate?: string;
+  stockReduced?: boolean;
 }
 
 export interface Client {
