@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FinishedProduct, Category, Material, Supplier, Transaction } from '../../types';
+import { FLORA_CATEGORIES, FLORA_EVENT_TYPES } from '../../constants';
 import { cn } from '../../lib/utils';
 import { translations, Language } from '../../i18n';
 import ProductModal from './ProductModal';
@@ -45,6 +46,7 @@ export default function ProductCatalog({
   setSearchQuery
 }: ProductCatalogProps) {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
+  const [eventFilter, setEventFilter] = useState<string>('All');
   const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
   const [priceRangeFilter, setPriceRangeFilter] = useState<'all' | 'under_50' | '50_150' | '150_300' | 'over_300'>('all');
   const [marginFilter, setMarginFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
@@ -56,7 +58,7 @@ export default function ProductCatalog({
   const [editingProduct, setEditingProduct] = useState<FinishedProduct | null>(null);
   const [viewingBOM, setViewingBOM] = useState<string | null>(null);
 
-  const categories: Category[] = ['Apparel', 'Accessories', 'Services', 'Custom Order', 'Batch Production'];
+  const categories: Category[] = FLORA_CATEGORIES;
 
   // Helper to compute profit margin percentage
   const getMargin = (p: FinishedProduct) => {
@@ -67,7 +69,7 @@ export default function ProductCatalog({
   // Advanced Filtering & Multi-field Search
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      // Search across name, SKU id, category, BOM material names, description
+      // Search across name, SKU id, category, BOM material names, description, keywords
       const searchLower = searchQuery.toLowerCase().trim();
       const bomMaterialNames = (p.materials || []).map(b => {
         const mat = materials.find(m => m.id === b.materialId);
@@ -79,9 +81,21 @@ export default function ProductCatalog({
         p.id.toLowerCase().includes(searchLower) ||
         p.category.toLowerCase().includes(searchLower) ||
         (p.description && p.description.toLowerCase().includes(searchLower)) ||
+        (p.occasion && p.occasion.toLowerCase().includes(searchLower)) ||
+        (p.flowerType && p.flowerType.toLowerCase().includes(searchLower)) ||
         bomMaterialNames.includes(searchLower);
 
       const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+
+      // Event Type / Occasion filter
+      let matchesEvent = true;
+      if (eventFilter !== 'All') {
+        const evLower = eventFilter.toLowerCase();
+        matchesEvent = (p.occasion && p.occasion.toLowerCase().includes(evLower)) ||
+          (p.keywords && p.keywords.some(k => k.toLowerCase().includes(evLower))) ||
+          (p.description && p.description.toLowerCase().includes(evLower)) ||
+          (p.name && p.name.toLowerCase().includes(evLower));
+      }
 
       // Stock filter
       let matchesStock = true;
@@ -104,7 +118,7 @@ export default function ProductCatalog({
       else if (marginFilter === 'medium') matchesMargin = margin >= 20 && margin < 40;
       else if (marginFilter === 'low') matchesMargin = margin < 20;
 
-      return matchesSearch && matchesCategory && matchesStock && matchesPrice && matchesMargin;
+      return matchesSearch && matchesCategory && matchesEvent && matchesStock && matchesPrice && matchesMargin;
     }).sort((a, b) => {
       if (sortBy === 'name_asc') return a.name.localeCompare(b.name);
       if (sortBy === 'name_desc') return b.name.localeCompare(a.name);
@@ -115,7 +129,7 @@ export default function ProductCatalog({
       if (sortBy === 'margin_desc') return getMargin(b) - getMargin(a);
       return 0;
     });
-  }, [products, materials, searchQuery, selectedCategory, stockFilter, priceRangeFilter, marginFilter, sortBy]);
+  }, [products, materials, searchQuery, selectedCategory, eventFilter, stockFilter, priceRangeFilter, marginFilter, sortBy]);
 
   const stats = {
     total: products.length,
@@ -127,6 +141,7 @@ export default function ProductCatalog({
   };
 
   const activeFiltersCount = (selectedCategory !== 'All' ? 1 : 0) + 
+    (eventFilter !== 'All' ? 1 : 0) +
     (stockFilter !== 'all' ? 1 : 0) + 
     (priceRangeFilter !== 'all' ? 1 : 0) + 
     (marginFilter !== 'all' ? 1 : 0) + 
@@ -134,6 +149,7 @@ export default function ProductCatalog({
 
   const clearAllFilters = () => {
     setSelectedCategory('All');
+    setEventFilter('All');
     setStockFilter('all');
     setPriceRangeFilter('all');
     setMarginFilter('all');
@@ -292,10 +308,10 @@ export default function ProductCatalog({
           </div>
 
           {/* Filter Options Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-1">
             {/* Category Select */}
             <div>
-              <label className="text-[9px] font-extrabold text-gray-400 uppercase block mb-1">Category</label>
+              <label className="text-[9px] font-extrabold text-gray-400 uppercase block mb-1">Primary Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value as any)}
@@ -304,6 +320,21 @@ export default function ProductCatalog({
                 <option value="All">All Categories</option>
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Event Type / Occasion Select */}
+            <div>
+              <label className="text-[9px] font-extrabold text-gray-400 uppercase block mb-1">Event Type / Occasion</label>
+              <select
+                value={eventFilter}
+                onChange={(e) => setEventFilter(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-indigo-900 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="All">All Event Types</option>
+                {FLORA_EVENT_TYPES.map(ev => (
+                  <option key={ev} value={ev}>{ev}</option>
                 ))}
               </select>
             </div>

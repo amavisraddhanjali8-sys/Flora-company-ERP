@@ -610,4 +610,7 @@ export interface UserProfile {
   mfaEnabled?: boolean;
   emailVerified?: boolean;
   customAllowedTabs?: string[];
+  password?: string;
+  mustChangePassword?: boolean;
+  passwordChangedAt?: string;
 }

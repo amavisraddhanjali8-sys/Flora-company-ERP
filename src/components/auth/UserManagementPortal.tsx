@@ -511,7 +511,7 @@ export default function UserManagementPortal({
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Super Admin Controls & Security Portal</h2>
           <p className="text-xs sm:text-sm text-purple-200/80 max-w-2xl leading-relaxed">
-            Full administrative control over user accounts, role permissions, MFA enforcement, registration approvals, and account status overrides.
+            Administrative controls for user account status (activate/deactivate or delete), role permissions, registration approvals, and module access. Account details & passwords can only be changed by the account owner.
           </p>
         </div>
 
@@ -818,15 +818,6 @@ export default function UserManagementPortal({
                                   >
                                     <Power size={13} />
                                     <span>{user.status === 'Deactivated' ? 'Activate' : 'Deactivate'}</span>
-                                  </button>
-
-                                  {/* Edit Profile */}
-                                  <button
-                                    onClick={() => openEditModal(user)}
-                                    className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition-all cursor-pointer border border-gray-200"
-                                    title="Edit Account Details"
-                                  >
-                                    <Edit size={14} />
                                   </button>
 
                                   {/* Delete Account */}

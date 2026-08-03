@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FinishedProduct, UserProfile, Order, CompanySettings } from '../../types';
+import { FLORA_EVENT_TYPES } from '../../constants';
 import { formatCurrency, cn } from '../../lib/utils';
 import { useNotifications } from '../../context/NotificationContext';
 
@@ -1047,11 +1048,11 @@ export default function ShopStorefront({
               </div>
             </div>
 
-            {/* By Occasion */}
+            {/* By Event Type / Occasion */}
             <div className="space-y-2 pt-2 border-t border-slate-100">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">By Occasion</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">By Event Type / Occasion</h4>
               <div className="space-y-1">
-                {['Weddings', 'Birthday', 'Anniversary', 'Thank You', 'Graduation', 'Get Well Soon'].map(occ => (
+                {FLORA_EVENT_TYPES.map(occ => (
                   <label 
                     key={occ}
                     className={cn(

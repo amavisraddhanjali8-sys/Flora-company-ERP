@@ -19,9 +19,10 @@ import OrderSystem from './components/orders/OrderSystem';
 import ProcurementSystem from './components/procurement/ProcurementSystem';
 import LogisticsSystem from './components/logistics/LogisticsSystem';
 import { Material, FinishedProduct, CartItem, Client, CompanySettings, Transaction, Quotation, Invoice, Expense, Supplier, AuditLog, LedgerAccount, LedgerEntry, JournalEntry, Order, RFQ, SupplierQuotation, ProcurementOrder, UserProfile, UserRole } from './types';
-import { FINISHED_PRODUCTS, MATERIALS, MOCK_CLIENTS, INITIAL_SETTINGS, MOCK_TRANSACTIONS, MOCK_SUPPLIERS, MOCK_AUDIT_LOGS, INITIAL_ACCOUNTS, MOCK_USERS } from './constants';
+import { FINISHED_PRODUCTS, MATERIALS, MOCK_CLIENTS, INITIAL_SETTINGS, MOCK_TRANSACTIONS, MOCK_SUPPLIERS, MOCK_AUDIT_LOGS, INITIAL_ACCOUNTS, MOCK_USERS, FLORA_CATEGORIES } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
-import { Barcode, AlertCircle, CheckCircle2, FileText, Receipt, DollarSign, Truck, Printer, X, ArrowLeft, Flower2, ShieldCheck, Store, LogOut, User } from 'lucide-react';
+import { Barcode, AlertCircle, CheckCircle2, FileText, Receipt, DollarSign, Truck, Printer, X, ArrowLeft, Flower2, ShieldCheck, Store, LogOut, User, Key } from 'lucide-react';
+import ChangePasswordModal from './components/auth/ChangePasswordModal';
 import { cn, formatCurrency } from './lib/utils';
 import InvoiceSystem from './components/invoice/InvoiceSystem';
 import ExpenseSystem from './components/expense/ExpenseSystem';
@@ -71,6 +72,7 @@ export default function App() {
   const [users, setUsers] = useState<UserProfile[]>(MOCK_USERS);
   const [currentUser, setCurrentUser] = useState<UserProfile>(GUEST_USER);
   const [isAuthScreenOpen, setIsAuthScreenOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('storefront');
 
@@ -81,12 +83,7 @@ export default function App() {
   
   const [finishedProducts, setFinishedProducts] = useState<FinishedProduct[]>(FINISHED_PRODUCTS);
   const [materials, setMaterials] = useState<Material[]>(MATERIALS);
-  const [categories, setCategories] = useState<string[]>([
-    'Live Plant Displays',
-    'Artificial & Preserved Plants',
-    'Custom & Thematic Installations',
-    'Planters & Vessels'
-  ]);
+  const [categories, setCategories] = useState<string[]>(FLORA_CATEGORIES);
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   const [suppliers, setSuppliers] = useState<Supplier[]>(MOCK_SUPPLIERS);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -241,6 +238,9 @@ export default function App() {
 
   const handleSwitchUser = (user: UserProfile) => {
     setCurrentUser(user);
+    if (user.mustChangePassword) {
+      setIsChangePasswordOpen(true);
+    }
     if (!canAccessTab(user.role, activeTab, user.customAllowedTabs)) {
       const def = ROLE_CONFIGS[user.role]?.defaultTab || 'lobby';
       setActiveTab(def);
@@ -1240,6 +1240,14 @@ export default function App() {
           }}
           language={language}
         />
+
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          currentUser={currentUser}
+          onClose={() => setIsChangePasswordOpen(false)}
+          onUpdateUser={handleUpdateUser}
+          isFirstLoginPrompt={!!currentUser.mustChangePassword}
+        />
       </div>
     );
   }
@@ -1287,8 +1295,16 @@ export default function App() {
                 {currentUser.role}
               </span>
               <button
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="ml-1 px-2.5 py-1 bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded-lg font-extrabold text-[10px] transition-all border border-purple-500/30 flex items-center gap-1 active:scale-95 shadow-2xs"
+                title="Change Password (Account Owner Self-Service)"
+              >
+                <Key size={12} />
+                <span>Change Password</span>
+              </button>
+              <button
                 onClick={handleLogout}
-                className="ml-2 px-2.5 py-1 bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-extrabold text-[10px] transition-all border border-rose-500/30 flex items-center gap-1 active:scale-95 shadow-2xs"
+                className="ml-1 px-2.5 py-1 bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-extrabold text-[10px] transition-all border border-rose-500/30 flex items-center gap-1 active:scale-95 shadow-2xs"
                 title="Log Out & Clear Active Session"
               >
                 <LogOut size={12} />
@@ -2072,6 +2088,14 @@ export default function App() {
             handleRegisterUser(newUser);
           }}
           language={language}
+        />
+
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          currentUser={currentUser}
+          onClose={() => setIsChangePasswordOpen(false)}
+          onUpdateUser={handleUpdateUser}
+          isFirstLoginPrompt={!!currentUser.mustChangePassword}
         />
       </main>
     </div>

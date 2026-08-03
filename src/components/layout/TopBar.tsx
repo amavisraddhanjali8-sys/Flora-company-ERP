@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, User, X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, Barcode, Globe, Keyboard as KeyboardIcon, Home, Printer, ShieldCheck, ChevronDown, Sparkles } from 'lucide-react';
+import { Bell, Search, User, X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, Barcode, Globe, Keyboard as KeyboardIcon, Home, Printer, ShieldCheck, ChevronDown, Sparkles, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Notification, UserProfile, UserRole } from '../../types';
@@ -32,6 +32,7 @@ interface TopBarProps {
   onSwitchUser: (user: UserProfile) => void;
   onOpenAuthScreen: () => void;
   onLogout?: () => void;
+  onOpenChangePassword?: () => void;
 }
 
 export default function TopBar({ 
@@ -52,7 +53,8 @@ export default function TopBar({
   allUsers,
   onSwitchUser,
   onOpenAuthScreen,
-  onLogout
+  onLogout,
+  onOpenChangePassword
 }: TopBarProps) {
   const { notifications, markAsRead, deleteNotification, markAllAsRead, clearAll } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
@@ -457,6 +459,18 @@ export default function TopBar({
                     </div>
                     <div className="font-extrabold text-slate-900 text-xs">{currentUser.name}</div>
                     <div className="text-[11px] text-slate-500">{currentUser.email}</div>
+                    {currentUser.id !== 'guest' && onOpenChangePassword && (
+                      <button
+                        onClick={() => {
+                          setIsRoleDropdownOpen(false);
+                          onOpenChangePassword();
+                        }}
+                        className="w-full mt-1.5 py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Key size={13} className="text-purple-600" />
+                        <span>Change Password (Account Owner)</span>
+                      </button>
+                    )}
                   </div>
 
                   <div>

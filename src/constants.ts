@@ -188,60 +188,32 @@ export const DEFAULT_FALLBACK_MATERIALS: Material[] = [
 
 export const MATERIALS: Material[] = DEFAULT_FALLBACK_MATERIALS;
 
-export const FINISHED_PRODUCTS: FinishedProduct[] = [
-  {
-    id: 'FP-1001',
-    name: 'Grand Royal Ecuadorian Rose Bouquet',
-    description: 'Handcrafted luxury arrangement of 24 long-stem Ecuadorian red roses paired with silver dollar eucalyptus foliage and signature satin ribbon.',
-    price: 129.99,
-    costPrice: 48.50,
-    category: 'Bouquets',
-    stock: 15,
-    minStock: 3,
-    barcode: 'FP1001-ROSE-GRD',
-    image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=600',
-    size: 'Large (24 Stems)',
-    color: 'Red',
-    flowerType: 'Roses',
-    occasion: 'Anniversary',
-    recipient: 'For Her',
-    status: 'Active',
-    keywords: ['fresh', 'roses', 'gift', 'luxury', 'romantic', 'anniversary'],
-    careGuide: 'Trim stems at 45° angle every 2 days. Keep water fresh and cool away from direct sunlight.',
-    materials: [
-      { materialId: 'mat-rose-red', quantity: 24 },
-      { materialId: 'mat-eucalyptus', quantity: 2 },
-      { materialId: 'mat-wrap-kraft', quantity: 3 },
-      { materialId: 'mat-ribbon-satin', quantity: 2 }
-    ]
-  },
-  {
-    id: 'FP-1002',
-    name: 'Pastel Hydrangea & Lily Symphony Vase',
-    description: 'Enchanting tabletop centerpiece featuring Dutch pink hydrangeas, oriental white lilies, and lush greenery in a clear cylinder glass vase.',
-    price: 149.50,
-    costPrice: 56.20,
-    category: 'Centerpieces',
-    stock: 10,
-    minStock: 2,
-    barcode: 'FP1002-HYD-LILY',
-    image: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=600',
-    size: 'Medium (Vase Arrangement)',
-    color: 'Pink & White',
-    flowerType: 'Hydrangeas',
-    occasion: 'Birthday',
-    recipient: 'Family',
-    status: 'Active',
-    keywords: ['hydrangea', 'lily', 'centerpiece', 'luxury', 'vase', 'birthday'],
-    careGuide: 'Change vase water daily and add floral food packet for prolonged vase life.',
-    materials: [
-      { materialId: 'mat-hydrangea-pink', quantity: 6 },
-      { materialId: 'mat-lily-white', quantity: 5 },
-      { materialId: 'mat-eucalyptus', quantity: 1 },
-      { materialId: 'mat-glass-vase', quantity: 1 }
-    ]
-  }
+export const FLORA_CATEGORIES: string[] = [
+  'Bouquets',
+  'Centerpieces & Table Vases',
+  'Fresh Cut Flower Stems',
+  'Indoor Plants & Planters',
+  'Dried & Preserved Floral',
+  'Floral Baskets & Gift Sets',
+  'Funeral & Sympathy Floral',
+  'Wedding & Bridal Installations',
+  'Corporate & Event Decor',
+  'Floral Accessories & Supplies'
 ];
+
+export const FLORA_EVENT_TYPES: string[] = [
+  'Weddings & Engagements',
+  'Corporate Events & Galas',
+  'Anniversaries & Romance',
+  'Birthdays & Celebrations',
+  'Funerals & Sympathy',
+  'Baby Showers & Gender Reveals',
+  'Graduations & Ceremonies',
+  'Holidays & Seasonal',
+  'Housewarming & Thank You'
+];
+
+export const FINISHED_PRODUCTS: FinishedProduct[] = [];
 
 export const PRODUCTS = FINISHED_PRODUCTS; // Compatibility reference
 
@@ -263,6 +235,8 @@ export const MOCK_USERS: UserProfile[] = [
     createdAt: '2026-01-01T08:00:00Z',
     mfaEnabled: false,
     emailVerified: true,
+    password: 'AdminPassword123!',
+    mustChangePassword: false,
   }
 ];
 

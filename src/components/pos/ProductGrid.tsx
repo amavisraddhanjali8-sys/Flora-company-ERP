@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, Plus, LayoutGrid, List, PackagePlus, Edit2, Trash2 } from 'lucide-react';
 import { Category, FinishedProduct, Supplier, Material } from '../../types';
+import { FLORA_EVENT_TYPES } from '../../constants';
 import { cn, formatCurrency } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import ProductModal from '../products/ProductModal';
@@ -32,6 +33,7 @@ export default function ProductGrid({
 }: ProductGridProps) {
   const t = translations[language];
   const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [selectedEvent, setSelectedEvent] = useState<string>('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -40,13 +42,22 @@ export default function ProductGrid({
 
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
+    
+    let matchesEvent = true;
+    if (selectedEvent !== 'All') {
+      const evLower = selectedEvent.toLowerCase();
+      matchesEvent = (p.occasion && p.occasion.toLowerCase().includes(evLower)) ||
+        (p.keywords && p.keywords.some(k => k.toLowerCase().includes(evLower))) ||
+        (p.description && p.description.toLowerCase().includes(evLower));
+    }
+
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       p.name.toLowerCase().includes(searchLower) || 
       p.id.toLowerCase().includes(searchLower) ||
       (p.barcode && p.barcode.toLowerCase().includes(searchLower));
     
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesEvent && matchesSearch;
   });
 
   const handleSaveProduct = (product: FinishedProduct) => {
@@ -127,21 +138,37 @@ export default function ProductGrid({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-          {['All', ...categories].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all",
-                activeCategory === cat
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              )}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 pt-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 flex-1">
+            {['All', ...categories].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all",
+                  activeCategory === cat
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                )}
+              >
+                {t[cat.toLowerCase() as keyof typeof t] || cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Event Filter:</span>
+            <select
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:border-primary"
             >
-              {t[cat.toLowerCase() as keyof typeof t] || cat}
-            </button>
-          ))}
+              <option value="All">All Event Types</option>
+              {FLORA_EVENT_TYPES.map(ev => (
+                <option key={ev} value={ev}>{ev}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

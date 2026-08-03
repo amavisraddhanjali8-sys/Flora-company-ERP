@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Package, DollarSign, Tag, Upload, Plus, Trash2, Flower2, Calendar, UserCheck, Palette, Hash, Sparkles, BookOpen, Warehouse } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FinishedProduct, Category, Material } from '../../types';
-import { DEFAULT_FALLBACK_MATERIALS } from '../../constants';
+import { DEFAULT_FALLBACK_MATERIALS, FLORA_CATEGORIES, FLORA_EVENT_TYPES } from '../../constants';
 import { cn } from '../../lib/utils';
 
 interface ProductModalProps {
@@ -20,13 +20,13 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
     name: '',
     price: 0,
     costPrice: 0,
-    category: categories[0] || 'Bouquets',
+    category: (categories && categories.length > 0) ? categories[0] : FLORA_CATEGORIES[0],
     stock: 10,
     minStock: 2,
     barcode: '',
     image: '',
     flowerType: 'Roses',
-    occasion: 'Anniversary',
+    occasion: FLORA_EVENT_TYPES[0],
     color: 'Red',
     recipient: 'For Her',
     careGuide: '',
@@ -423,24 +423,19 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
                       </select>
                     </div>
 
-                    {/* Occasion */}
+                    {/* Occasion / Event Type */}
                     <div className="space-y-1">
                       <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-1">
-                        <Calendar size={10} className="text-indigo-600" /> Occasion
+                        <Calendar size={10} className="text-indigo-600" /> Event Type / Occasion
                       </label>
                       <select
-                        value={formData.occasion || 'Anniversary'}
+                        value={formData.occasion || FLORA_EVENT_TYPES[0]}
                         onChange={e => setFormData({ ...formData, occasion: e.target.value })}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-sky-500 transition-all"
                       >
-                        <option value="Anniversary">Anniversary</option>
-                        <option value="Weddings">Weddings</option>
-                        <option value="Birthday">Birthday</option>
-                        <option value="Corporate">Corporate Gifts</option>
-                        <option value="Graduation">Graduation</option>
-                        <option value="Get Well">Get Well</option>
-                        <option value="Sympathy">Sympathy</option>
-                        <option value="All Occasions">All Occasions</option>
+                        {FLORA_EVENT_TYPES.map(ev => (
+                          <option key={ev} value={ev}>{ev}</option>
+                        ))}
                       </select>
                     </div>
 
