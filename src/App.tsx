@@ -19,14 +19,16 @@ import OrderSystem from './components/orders/OrderSystem';
 import ProcurementSystem from './components/procurement/ProcurementSystem';
 import LogisticsSystem from './components/logistics/LogisticsSystem';
 import { Material, FinishedProduct, CartItem, Client, CompanySettings, Transaction, Quotation, Invoice, Expense, Supplier, AuditLog, LedgerAccount, LedgerEntry, JournalEntry, Order, RFQ, SupplierQuotation, ProcurementOrder, UserProfile, UserRole } from './types';
-import { FINISHED_PRODUCTS, MATERIALS, MOCK_CLIENTS, INITIAL_SETTINGS, MOCK_TRANSACTIONS, MOCK_SUPPLIERS, MOCK_AUDIT_LOGS, INITIAL_ACCOUNTS, MOCK_USERS, FLORA_CATEGORIES } from './constants';
+import { FINISHED_PRODUCTS, MATERIALS, MOCK_CLIENTS, INITIAL_SETTINGS, MOCK_TRANSACTIONS, MOCK_SUPPLIERS, MOCK_AUDIT_LOGS, INITIAL_ACCOUNTS, MOCK_USERS, FLORA_CATEGORIES, INITIAL_RFQS, INITIAL_SUPPLIER_QUOTATIONS, INITIAL_PROCUREMENT_ORDERS } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { Barcode, AlertCircle, CheckCircle2, FileText, Receipt, DollarSign, Truck, Printer, X, ArrowLeft, Flower2, ShieldCheck, Store, LogOut, User, Key } from 'lucide-react';
 import ChangePasswordModal from './components/auth/ChangePasswordModal';
+import MfaSecurityModal from './components/auth/MfaSecurityModal';
 import { cn, formatCurrency } from './lib/utils';
 import InvoiceSystem from './components/invoice/InvoiceSystem';
 import ExpenseSystem from './components/expense/ExpenseSystem';
 import SupplierManagement from './components/suppliers/SupplierManagement';
+import SupplierPortal from './components/suppliers/SupplierPortal';
 import { translations, Language } from './i18n';
 import VirtualKeyboard from './components/layout/VirtualKeyboard';
 import Lobby from './components/layout/Lobby';
@@ -38,7 +40,9 @@ import { canAccessTab, ROLE_CONFIGS } from './lib/rbac';
 import AuthScreen from './components/auth/AuthScreen';
 import UserManagementPortal from './components/auth/UserManagementPortal';
 import AccessRestricted from './components/common/AccessRestricted';
+import BarcodeHubModal from './components/common/BarcodeHubModal';
 import ShopStorefront from './components/storefront/ShopStorefront';
+import { createJwtSessionToken, parseJwtSessionToken } from './lib/jwtSession';
 
 const TAB_TITLES: Record<string, string> = {
   'pos': 'Create Order',
@@ -74,6 +78,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = usePersistentState<UserProfile>('flora_current_user_v2', GUEST_USER);
   const [isAuthScreenOpen, setIsAuthScreenOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isMfaSecurityOpen, setIsMfaSecurityOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('storefront');
 
@@ -90,7 +95,7 @@ export default function App() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [orders, setOrders] = usePersistentState<Order[]>('flora_orders_v2', []);
-  const [rfqs, setRfqs] = usePersistentState<RFQ[]>('flora_rfqs_v2', []);
+  const [rfqs, setRfqs] = usePersistentState<RFQ[]>('flora_rfqs_v2', INITIAL_RFQS);
   const [initialRfqOrderId, setInitialRfqOrderId] = useState<string | null>(null);
   const [initialRfqItem, setInitialRfqItem] = useState<{
     type: 'Material' | 'Product' | 'Service' | 'Support';
@@ -102,8 +107,8 @@ export default function App() {
     specs?: string;
     items?: { materialId?: string; name: string; quantity: number; unit: string; specs?: string }[];
   } | null>(null);
-  const [supplierQuotations, setSupplierQuotations] = usePersistentState<SupplierQuotation[]>('flora_supplier_quotations_v2', []);
-  const [procurementOrders, setProcurementOrders] = usePersistentState<ProcurementOrder[]>('flora_procurement_orders_v2', []);
+  const [supplierQuotations, setSupplierQuotations] = usePersistentState<SupplierQuotation[]>('flora_supplier_quotations_v2', INITIAL_SUPPLIER_QUOTATIONS);
+  const [procurementOrders, setProcurementOrders] = usePersistentState<ProcurementOrder[]>('flora_procurement_orders_v2', INITIAL_PROCUREMENT_ORDERS);
   const [transactions, setTransactions] = usePersistentState<Transaction[]>('flora_transactions_v2', MOCK_TRANSACTIONS);
   const [quotations, setQuotations] = usePersistentState<Quotation[]>('flora_quotations_v2', []);
   const [invoices, setInvoices] = usePersistentState<Invoice[]>('flora_invoices_v2', []);
@@ -226,10 +231,11 @@ export default function App() {
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
-    // Sync user into system state if auto-created or new
+    // Sync user into system state if auto-created or new, or update existing user state
     setUsers(prev => {
-      if (prev.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())) {
-        return prev;
+      const exists = prev.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+      if (exists) {
+        return prev.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u);
       }
       return [...prev, user];
     });
@@ -237,8 +243,107 @@ export default function App() {
     setIsAuthScreenOpen(false);
   };
 
+  // Automated Email Link Verification Handling (When account holder clicks link in email)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyToken = params.get('verify_token') || params.get('verificationToken') || params.get('token');
+    const verifyCode = params.get('verify_code') || params.get('code');
+    const targetEmail = params.get('email');
+
+    if (verifyToken || (verifyCode && targetEmail)) {
+      const foundUser = users.find(u => 
+        (verifyToken && u.emailVerificationToken === verifyToken) ||
+        (targetEmail && u.email.toLowerCase() === targetEmail.toLowerCase() && (u.emailVerificationToken === verifyToken || u.emailOtpCode === verifyCode)) ||
+        (targetEmail && u.email.toLowerCase() === targetEmail.toLowerCase())
+      );
+
+      if (foundUser) {
+        const verifiedUser: UserProfile = {
+          ...foundUser,
+          emailVerified: true,
+          status: (foundUser.status as string) === 'Pending Verification' || foundUser.status === 'Pending Approval' ? 'Active' : foundUser.status,
+          emailVerificationToken: undefined,
+          emailOtpCode: undefined
+        };
+
+        setUsers(prev => prev.map(u => u.id === verifiedUser.id ? verifiedUser : u));
+
+        // Create JWT session and log in user
+        const sessionToken = createJwtSessionToken(verifiedUser);
+        localStorage.setItem('flora_session_token', sessionToken);
+        setCurrentUser({
+          ...verifiedUser,
+          sessionToken
+        });
+
+        addNotification({
+          title: '🎉 Email Verified Successfully!',
+          message: `Your account (${verifiedUser.email}) has been verified and activated. Welcome to Flora & Verdant!`,
+          type: 'success',
+          category: 'system'
+        });
+
+        // Clean query parameters from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
+  // Synchronize & Re-hydrate JWT session state across page reloads & system user updates
+  useEffect(() => {
+    if (!currentUser || currentUser.id === 'guest') {
+      localStorage.removeItem('flora_session_token');
+      return;
+    }
+
+    const storedToken = localStorage.getItem('flora_session_token');
+    const matchedUser = users.find(u => u.id === currentUser.id || u.email.toLowerCase() === currentUser.email.toLowerCase());
+
+    if (!matchedUser) {
+      // Account deleted or removed
+      handleLogout();
+      return;
+    }
+
+    if (matchedUser.status === 'Deactivated' || matchedUser.status === 'Rejected') {
+      // Account inactive or deactivated
+      handleLogout();
+      return;
+    }
+
+    // Ensure session token exists and is valid
+    let token = storedToken;
+    const parsedToken = token ? parseJwtSessionToken(token) : null;
+    if (!token || !parsedToken || parsedToken.sub !== matchedUser.id) {
+      token = createJwtSessionToken(matchedUser);
+      localStorage.setItem('flora_session_token', token);
+    }
+
+    // Sync any updated properties from matchedUser to currentUser
+    if (
+      matchedUser.role !== currentUser.role ||
+      matchedUser.status !== currentUser.status ||
+      matchedUser.emailVerified !== currentUser.emailVerified ||
+      matchedUser.password !== currentUser.password ||
+      matchedUser.name !== currentUser.name ||
+      currentUser.sessionToken !== token
+    ) {
+      setCurrentUser({
+        ...matchedUser,
+        sessionToken: token
+      });
+    }
+  }, [users, currentUser.id]);
+
   const handleSwitchUser = (user: UserProfile) => {
-    setCurrentUser(user);
+    const sessionToken = createJwtSessionToken(user);
+    localStorage.setItem('flora_session_token', sessionToken);
+    const userWithSession: UserProfile = {
+      ...user,
+      sessionToken
+    };
+
+    setCurrentUser(userWithSession);
     if (user.mustChangePassword) {
       setIsChangePasswordOpen(true);
     }
@@ -255,6 +360,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('flora_session_token');
     setCurrentUser(GUEST_USER);
     setActiveTab('storefront');
     addNotification({
@@ -429,6 +535,7 @@ export default function App() {
 
   // Barcode Scanner State
   const [scannerStatus, setScannerStatus] = useState<'idle' | 'connected' | 'error'>('idle');
+  const [isBarcodeHubOpen, setIsBarcodeHubOpen] = useState(false);
   const [scannerMessage, setScannerMessage] = useState<string | null>(null);
   const [printerSettings, setPrinterSettings] = useState({
     receiptPrinter: 'System Default',
@@ -586,9 +693,10 @@ export default function App() {
 
   const processBarcode = (code: string) => {
     if (!code) return;
+    const cleanCode = code.trim();
     
-    const product = finishedProducts.find(p => p.barcode === code || p.id === code);
-    
+    // 1. Check Finished Products Catalog
+    const product = finishedProducts.find(p => (p.barcode && p.barcode === cleanCode) || p.id === cleanCode);
     if (product) {
       if (!product.isService && product.stock <= 0) {
         setScannerStatus('error');
@@ -601,7 +709,6 @@ export default function App() {
         return;
       }
 
-      // If product is already in cart, increment quantity, otherwise add new
       const existingItem = cartItems.find(item => item.id === product.id);
       if (existingItem) {
         updateQuantity(product.id, 1);
@@ -610,42 +717,115 @@ export default function App() {
       }
       
       setScannerStatus('connected');
-      
-      // Voice notification
+      addNotification({
+        title: 'Product Scanned',
+        message: `Scanned ${product.name} ($${product.price}). Added to cart.`,
+        type: 'success',
+        category: 'sales'
+      });
+
       try {
         if ('speechSynthesis' in window && window.speechSynthesis) {
           const msg = new SpeechSynthesisUtterance(`${product.name} added`);
           msg.rate = 1.4;
           window.speechSynthesis.speak(msg);
         }
-      } catch (err) {
-        // Ignore speech synthesis error
-      }
+      } catch (err) {}
 
-      // Clear status after 2 seconds
       setTimeout(() => setScannerStatus('idle'), 2000);
-    } else {
-      setScannerStatus('error');
+      return;
+    }
+
+    // 2. Check Botanical / Material Stock
+    const material = materials.find(m => (m.barcode && m.barcode === cleanCode) || m.id === cleanCode);
+    if (material) {
+      setScannerStatus('connected');
       addNotification({
-        title: 'Scan Error',
-        message: `Barcode not found: ${code}.`,
-        type: 'error',
-        category: 'system'
+        title: 'Material Identified',
+        message: `Scanned resource: ${material.name} (${material.type}). Stock: ${material.stock} ${material.unit}.`,
+        type: 'info',
+        category: 'inventory'
       });
-      
-      // Voice notification
+
       try {
         if ('speechSynthesis' in window && window.speechSynthesis) {
-          const msg = new SpeechSynthesisUtterance(`Barcode not found`);
-          msg.rate = 1.2;
+          const msg = new SpeechSynthesisUtterance(`${material.name} identified`);
+          msg.rate = 1.4;
           window.speechSynthesis.speak(msg);
         }
-      } catch (err) {
-        // Ignore speech synthesis error
-      }
+      } catch (err) {}
 
-      setTimeout(() => setScannerStatus('idle'), 3000);
+      setActiveTab('inventory');
+      setTimeout(() => setScannerStatus('idle'), 2000);
+      return;
     }
+
+    // 3. Check Sales / Installation Orders
+    const order = orders.find(o => o.id === cleanCode || o.orderNumber === cleanCode);
+    if (order) {
+      setScannerStatus('connected');
+      addNotification({
+        title: 'Sales Order Identified',
+        message: `Scanned Order #${order.orderNumber || order.id} for ${order.clientName} ($${order.total}).`,
+        type: 'info',
+        category: 'sales'
+      });
+
+      try {
+        if ('speechSynthesis' in window && window.speechSynthesis) {
+          const msg = new SpeechSynthesisUtterance(`Order ${order.orderNumber || order.id} identified`);
+          msg.rate = 1.4;
+          window.speechSynthesis.speak(msg);
+        }
+      } catch (err) {}
+
+      setActiveTab('orders');
+      setTimeout(() => setScannerStatus('idle'), 2000);
+      return;
+    }
+
+    // 4. Check Procurement Orders
+    const po = procurementOrders.find(p => p.id === cleanCode || p.poNumber === cleanCode);
+    if (po) {
+      setScannerStatus('connected');
+      addNotification({
+        title: 'Procurement Order Identified',
+        message: `Scanned Procurement PO #${po.poNumber || po.id} from ${po.supplierName}.`,
+        type: 'info',
+        category: 'procurement'
+      });
+
+      try {
+        if ('speechSynthesis' in window && window.speechSynthesis) {
+          const msg = new SpeechSynthesisUtterance(`Procurement Order identified`);
+          msg.rate = 1.4;
+          window.speechSynthesis.speak(msg);
+        }
+      } catch (err) {}
+
+      setActiveTab('procurement');
+      setTimeout(() => setScannerStatus('idle'), 2000);
+      return;
+    }
+
+    // Barcode not recognized
+    setScannerStatus('error');
+    addNotification({
+      title: 'Scan Error',
+      message: `Barcode not found in system: ${cleanCode}.`,
+      type: 'error',
+      category: 'system'
+    });
+    
+    try {
+      if ('speechSynthesis' in window && window.speechSynthesis) {
+        const msg = new SpeechSynthesisUtterance(`Barcode not found`);
+        msg.rate = 1.2;
+        window.speechSynthesis.speak(msg);
+      }
+    } catch (err) {}
+
+    setTimeout(() => setScannerStatus('idle'), 3000);
   };
 
   const addToCart = (product: FinishedProduct) => {
@@ -1239,6 +1419,7 @@ export default function App() {
           onRegisterUser={(newUser) => {
             handleRegisterUser(newUser);
           }}
+          onUpdateUser={handleUpdateUser}
           language={language}
         />
 
@@ -1248,6 +1429,13 @@ export default function App() {
           onClose={() => setIsChangePasswordOpen(false)}
           onUpdateUser={handleUpdateUser}
           isFirstLoginPrompt={!!currentUser.mustChangePassword}
+        />
+
+        <MfaSecurityModal
+          isOpen={isMfaSecurityOpen}
+          currentUser={currentUser}
+          onClose={() => setIsMfaSecurityOpen(false)}
+          onUpdateUser={handleUpdateUser}
         />
       </div>
     );
@@ -1301,7 +1489,15 @@ export default function App() {
                 title="Change Password (Account Owner Self-Service)"
               >
                 <Key size={12} />
-                <span>Change Password</span>
+                <span>Password</span>
+              </button>
+              <button
+                onClick={() => setIsMfaSecurityOpen(true)}
+                className="ml-1 px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-lg font-extrabold text-[10px] transition-all border border-emerald-500/30 flex items-center gap-1 active:scale-95 shadow-2xs"
+                title="MFA Security & Authenticator Settings"
+              >
+                <ShieldCheck size={12} />
+                <span>MFA Security</span>
               </button>
               <button
                 onClick={handleLogout}
@@ -1321,6 +1517,15 @@ export default function App() {
               <span>Staff / Client Sign In</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsBarcodeHubOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 border border-emerald-500/30"
+            title="Open Barcode Studio & Thermal Label Generator"
+          >
+            <Barcode size={14} />
+            <span className="hidden sm:inline">Barcode Studio</span>
+          </button>
 
           <button
             onClick={() => setActiveTab('storefront')}
@@ -1728,6 +1933,23 @@ export default function App() {
             setSearchQuery={setSearchQuery}
           />
         )}
+        {activeTab === 'supplier-portal' && (
+          <SupplierPortal 
+            currentUser={currentUser}
+            suppliers={suppliers}
+            rfqs={rfqs}
+            quotations={supplierQuotations}
+            procurementOrders={procurementOrders}
+            invoices={invoices}
+            companySettings={companySettings}
+            onUpdateQuotations={setSupplierQuotations}
+            onUpdateRfqs={setRfqs}
+            onUpdateProcurementOrders={setProcurementOrders}
+            onUpdateInvoices={setInvoices}
+            onAddAuditLog={addAuditLog}
+          />
+        )}
+
         {activeTab === 'suppliers' && (
           <SupplierManagement 
             suppliers={suppliers} 
@@ -2088,6 +2310,7 @@ export default function App() {
           onRegisterUser={(newUser) => {
             handleRegisterUser(newUser);
           }}
+          onUpdateUser={handleUpdateUser}
           language={language}
         />
 
@@ -2097,6 +2320,31 @@ export default function App() {
           onClose={() => setIsChangePasswordOpen(false)}
           onUpdateUser={handleUpdateUser}
           isFirstLoginPrompt={!!currentUser.mustChangePassword}
+        />
+
+        <MfaSecurityModal
+          isOpen={isMfaSecurityOpen}
+          currentUser={currentUser}
+          onClose={() => setIsMfaSecurityOpen(false)}
+          onUpdateUser={handleUpdateUser}
+        />
+
+        <BarcodeHubModal
+          isOpen={isBarcodeHubOpen}
+          onClose={() => setIsBarcodeHubOpen(false)}
+          products={finishedProducts}
+          materials={materials}
+          orders={orders}
+          procurementOrders={procurementOrders}
+          onUpdateProduct={(updatedProd) => {
+            setFinishedProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
+            addAuditLog('Barcode Updated', `Updated barcode for product ${updatedProd.name} (${updatedProd.barcode})`, 'inventory');
+          }}
+          onUpdateMaterial={(updatedMat) => {
+            setMaterials(prev => prev.map(m => m.id === updatedMat.id ? updatedMat : m));
+            addAuditLog('Barcode Updated', `Updated barcode for material ${updatedMat.name} (${updatedMat.barcode})`, 'inventory');
+          }}
+          onAddToCart={addToCart}
         />
       </main>
     </div>

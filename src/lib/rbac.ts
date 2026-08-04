@@ -129,13 +129,24 @@ export const ROLE_CONFIGS: Record<UserRole, RoleInfo> = {
     displayName: 'Supplier Portal User',
     category: 'External Partner',
     badgeColor: 'bg-rose-600 text-white border-rose-300',
-    description: 'Self-service vendor portal: Review procurement RFQs, submit quotes & track supply POs.',
+    description: 'Vendor portal: Review company RFQs, send itemized quotations with discounts/freight, view awarded POs, dispatch goods, review GRNs & generate invoices.',
     allowedTabs: [
-      'procurement',
-      'suppliers',
+      'supplier-portal',
       'storefront'
     ],
-    defaultTab: 'procurement'
+    defaultTab: 'supplier-portal'
+  },
+  'Outsourced Partner': {
+    role: 'Outsourced Partner',
+    displayName: 'Outsourced Service Partner',
+    category: 'External Partner',
+    badgeColor: 'bg-purple-600 text-white border-purple-300',
+    description: 'Outsourced partner portal: View service RFQs, submit contract quotes, dispatch completed jobs, share proof documents & generate invoices.',
+    allowedTabs: [
+      'supplier-portal',
+      'storefront'
+    ],
+    defaultTab: 'supplier-portal'
   }
 };
 

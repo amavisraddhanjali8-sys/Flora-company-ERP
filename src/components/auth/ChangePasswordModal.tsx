@@ -33,6 +33,18 @@ export default function ChangePasswordModal({
     e.preventDefault();
     setErrorMsg(null);
 
+    // Verify current password if account already has a password set
+    if (currentUser.password) {
+      if (!currentPassword) {
+        setErrorMsg('Please enter your current account password.');
+        return;
+      }
+      if (currentPassword !== currentUser.password) {
+        setErrorMsg('The current password you entered is incorrect.');
+        return;
+      }
+    }
+
     if (!newPassword || newPassword.trim().length < 8) {
       setErrorMsg('New password must be at least 8 characters long.');
       return;
@@ -123,14 +135,17 @@ export default function ChangePasswordModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Current Password (Optional)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Current Password {currentUser.password ? '*' : '(Optional)'}
+            </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
               <input
                 type={showPasswords ? 'text' : 'password'}
+                required={!!currentUser.password}
                 value={currentPassword}
                 onChange={e => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password if known"
+                placeholder={currentUser.password ? "Enter your current account password" : "Enter current password"}
                 className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-purple-600"
               />
             </div>

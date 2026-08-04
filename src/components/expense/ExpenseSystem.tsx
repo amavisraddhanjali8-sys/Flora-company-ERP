@@ -141,26 +141,26 @@ export default function ExpenseSystem({
 
   return (
     <div className="flex-1 bg-gray-50 flex flex-col overflow-hidden">
-      <div className="flex-1 flex flex-col p-6 space-y-6 overflow-y-auto">
-        <div className="flex justify-between items-end">
+      <div className="flex-1 flex flex-col p-3 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-xl font-black text-gray-900 tracking-tight">Expense portal</h1>
+            <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">Expense portal</h1>
             <p className="text-xs text-gray-500 font-medium">Track and manage business expenditures</p>
           </div>
-          <div className="flex gap-3">
-            <div className="relative">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text"
                 placeholder="Search expenses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary transition-all w-64"
+                className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-primary transition-all w-full"
               />
             </div>
             <button 
               onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
+              className="flex items-center justify-center gap-2 px-3.5 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all shrink-0"
             >
               <Plus size={14} /> Record Expense
             </button>

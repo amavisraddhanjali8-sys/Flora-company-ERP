@@ -28,6 +28,7 @@ export interface Supplier {
   rating?: number;
   ratingCount?: number;
   ratingsHistory?: SupplierRating[];
+  status?: 'Active' | 'Inactive';
 }
 
 export type Category = string;
@@ -46,6 +47,7 @@ export interface Material {
   category: string;
   image?: string;
   supplier?: string;
+  barcode?: string;
 }
 
 export interface RFQ {
@@ -111,6 +113,8 @@ export interface SupplierQuotation {
   status: 'Pending' | 'Accepted' | 'Rejected';
   notes?: string;
   terms?: string[];
+  attachments?: string[];
+  referenceDocuments?: { name: string; url: string }[];
 }
 
 export interface ProcurementOrder {
@@ -149,6 +153,25 @@ export interface ProcurementOrder {
   terms?: string[];
   deficitRfqId?: string;
   deficitRfqNumber?: string;
+  dispatchInfo?: {
+    dispatchedDate: string;
+    estimatedArrival?: string;
+    courierOrDriver?: string;
+    vehiclePlate?: string;
+    trackingNumber?: string;
+    waybillNumber?: string;
+    dispatchedItems?: { name: string; quantity: number }[];
+    notes?: string;
+    attachmentUrl?: string;
+  };
+  supplierDocuments?: {
+    id: string;
+    title: string;
+    documentType: 'Proof of Delivery' | 'Invoice' | 'Test Certificate' | 'Waybill' | 'Discrepancy Note' | 'Other';
+    fileUrl?: string;
+    notes?: string;
+    uploadedAt: string;
+  }[];
   serviceDetails?: {
     serviceType: string;
     contractType?: 'Client Service Agreement' | 'Freelance/Specialist Contract' | 'Strategic Partnership' | 'Custom Manufacturing' | 'Logistics & Fulfillment' | 'Specialized Service';
@@ -458,6 +481,8 @@ export interface Invoice {
   poNumber?: string;
   isSupplierInvoice?: boolean;
   type?: 'Customer' | 'Supplier';
+  supplierId?: string;
+  supplierName?: string;
   clientId: string;
   clientName: string;
   date: string;
@@ -592,7 +617,29 @@ export type UserRole =
   | 'Finance Manager'
   | 'Logistics Manager'
   | 'Client'
-  | 'Supplier';
+  | 'Supplier'
+  | 'Outsourced Partner';
+
+export interface UserSession {
+  id: string;
+  deviceName: string;
+  browser: string;
+  ipAddress: string;
+  location?: string;
+  loginAt: string;
+  lastActiveAt: string;
+  isCurrent?: boolean;
+}
+
+export interface AuthAuditLog {
+  id: string;
+  timestamp: string;
+  action: 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'MFA_VERIFIED' | 'BACKUP_CODE_USED' | 'PASSWORD_CHANGED' | 'MFA_ENABLED' | 'MFA_DISABLED' | 'EMAIL_VERIFIED';
+  ipAddress: string;
+  userAgent?: string;
+  status: 'Success' | 'Failed';
+  details?: string;
+}
 
 export interface UserProfile {
   id: string;
@@ -609,9 +656,19 @@ export interface UserProfile {
   approvedAt?: string;
   approvedBy?: string;
   mfaEnabled?: boolean;
+  mfaType?: 'totp' | 'email' | 'both';
+  mfaSecret?: string;
+  backupCodes?: string[];
   emailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailOtpCode?: string;
+  emailOtpExpiresAt?: string;
   customAllowedTabs?: string[];
   password?: string;
   mustChangePassword?: boolean;
   passwordChangedAt?: string;
+  sessionToken?: string;
+  sessionExpiresAt?: string;
+  activeSessions?: UserSession[];
+  authAuditLogs?: AuthAuditLog[];
 }

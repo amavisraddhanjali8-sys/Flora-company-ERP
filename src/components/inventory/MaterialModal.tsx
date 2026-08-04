@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Package, DollarSign, Tag, Truck, Upload } from 'lucide-react';
+import { X, Save, Package, DollarSign, Tag, Truck, Upload, QrCode, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Barcode from 'react-barcode';
 import { Material, Category, Supplier, MaterialType } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -24,7 +25,8 @@ export default function MaterialModal({ isOpen, onClose, onSave, product, suppli
     stock: 0,
     minStock: 5,
     supplier: '',
-    image: ''
+    image: '',
+    barcode: ''
   });
 
   useEffect(() => {
@@ -41,7 +43,8 @@ export default function MaterialModal({ isOpen, onClose, onSave, product, suppli
         stock: 0,
         minStock: 5,
         supplier: '',
-        image: ''
+        image: '',
+        barcode: `MAT-${Math.floor(100000 + Math.random() * 900000)}`
       });
     }
   }, [product, isOpen, categories]);
@@ -72,6 +75,7 @@ export default function MaterialModal({ isOpen, onClose, onSave, product, suppli
       stock: (formData.type === 'Service' || formData.type === 'Support') ? 0 : (Number(formData.stock) || 0),
       minStock: (formData.type === 'Service' || formData.type === 'Support') ? 0 : (Number(formData.minStock) || 0),
       supplier: formData.supplier || '',
+      barcode: formData.barcode || `MAT-${Math.floor(100000 + Math.random() * 900000)}`,
       image: formData.image || `https://picsum.photos/seed/${formData.name}/200`
     };
     
@@ -217,6 +221,36 @@ export default function MaterialModal({ isOpen, onClose, onSave, product, suppli
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Barcode & Scanning Code */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
+                        <QrCode size={12} className="text-primary" /> Barcode / Tag ID
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, barcode: `MAT-${Math.floor(100000 + Math.random() * 900000)}` })}
+                        className="text-[9px] font-black text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles size={10} /> Auto-Generate
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={formData.barcode || ''}
+                        onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                        className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-800 focus:outline-none focus:border-primary"
+                        placeholder="e.g. MAT-829102"
+                      />
+                      {formData.barcode && (
+                        <div className="bg-white p-1 rounded-lg border border-gray-200 shrink-0">
+                          <Barcode value={formData.barcode} width={1} height={25} fontSize={9} />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">

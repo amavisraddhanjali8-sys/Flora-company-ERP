@@ -44,7 +44,37 @@ import { cn } from '../../lib/utils';
 import { useNotifications } from '../../context/NotificationContext';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-const isValidEmail = (emailStr: string) => EMAIL_REGEX.test(emailStr.trim());
+
+const isValidEmail = (emailStr: string): boolean => {
+  if (!emailStr || typeof emailStr !== 'string') return false;
+  const clean = emailStr.trim();
+  if (clean.length < 5 || clean.length > 254) return false;
+  if (clean.includes(' ') || clean.includes(',') || clean.includes('..')) return false;
+  if (clean.startsWith('.') || clean.endsWith('.')) return false;
+
+  if (!EMAIL_REGEX.test(clean)) return false;
+
+  const parts = clean.split('@');
+  if (parts.length !== 2) return false;
+  
+  const [local, domain] = parts;
+  if (!local || !domain || local.length > 64) return false;
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) return false;
+
+  const tld = domainParts[domainParts.length - 1];
+  if (!/^[a-zA-Z]{2,}$/.test(tld)) return false;
+
+  for (const part of domainParts) {
+    if (!part || part.length > 63 || part.startsWith('-') || part.endsWith('-')) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 interface UserManagementPortalProps {
   users: UserProfile[];
@@ -340,7 +370,9 @@ export default function UserManagementPortal({
       status: 'Active',
       companyName: newCompany.trim() || 'Flora & Verdant Biophilic Design',
       phone: newPhone.trim(),
-      mfaEnabled: newMfa
+      mfaEnabled: newMfa,
+      password: 'Flora123!',
+      mustChangePassword: true
     });
 
     addNotification({
@@ -755,6 +787,7 @@ export default function UserManagementPortal({
                               <option value="Logistics Manager">Logistics Manager</option>
                               <option value="Client">Client</option>
                               <option value="Supplier">Supplier</option>
+                              <option value="Outsourced Partner">Outsourced Partner</option>
                             </select>
                           </td>
 
@@ -1098,6 +1131,7 @@ export default function UserManagementPortal({
                   <option value="Logistics Manager">Logistics Manager</option>
                   <option value="Client">Client</option>
                   <option value="Supplier">Supplier</option>
+                  <option value="Outsourced Partner">Outsourced Partner</option>
                 </select>
               </div>
 
@@ -1197,6 +1231,7 @@ export default function UserManagementPortal({
                     <option value="Logistics Manager">Logistics Manager</option>
                     <option value="Client">Client</option>
                     <option value="Supplier">Supplier</option>
+                    <option value="Outsourced Partner">Outsourced Partner</option>
                   </select>
                 </div>
 

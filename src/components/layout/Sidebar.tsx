@@ -19,7 +19,8 @@ import {
   Globe,
   Truck as TruckIcon,
   Menu,
-  X
+  X,
+  Building2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { translations, Language } from '../../i18n';
@@ -49,6 +50,7 @@ export default function Sidebar({
 
   const allMenuItems = [
     { id: 'storefront', label: 'E-Commerce Website', icon: Globe },
+    { id: 'supplier-portal', label: 'Supplier & Partner Portal', icon: Building2 },
     { id: 'lobby', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pos', label: 'Create Order', icon: ShoppingCart },
     { id: 'order-management', label: 'Order System', icon: History },

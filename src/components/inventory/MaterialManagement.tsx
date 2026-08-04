@@ -91,6 +91,7 @@ export default function MaterialManagement({
     const matchesSearch = !searchLower ||
                          m.name.toLowerCase().includes(searchLower) ||
                          m.id.toLowerCase().includes(searchLower) ||
+                         (m.barcode && m.barcode.toLowerCase().includes(searchLower)) ||
                          m.category.toLowerCase().includes(searchLower) ||
                          m.type.toLowerCase().includes(searchLower) ||
                          (m.supplier && m.supplier.toLowerCase().includes(searchLower)) ||
@@ -483,7 +484,14 @@ export default function MaterialManagement({
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-900">{material.name}</p>
-                        <p className="text-[9px] text-gray-400">{material.category}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] text-gray-400">{material.category}</span>
+                          {material.barcode && (
+                            <span className="text-[8px] font-mono font-bold text-teal-700 bg-teal-50 px-1 py-0.2 rounded">
+                              {material.barcode}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>

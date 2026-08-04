@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, User, X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, Barcode, Globe, Keyboard as KeyboardIcon, Home, Printer, ShieldCheck, ChevronDown, Sparkles, Key } from 'lucide-react';
+import { Bell, Search, User, X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, Barcode, Globe, Keyboard as KeyboardIcon, Home, Printer, ShieldCheck, ChevronDown, Sparkles, Key, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Notification, UserProfile, UserRole } from '../../types';
@@ -18,6 +18,7 @@ interface TopBarProps {
   isKeyboardOpen: boolean;
   setIsKeyboardOpen: (open: boolean) => void;
   onOpenPrinterSettings?: () => void;
+  onOpenBarcodeHub?: () => void;
   printerSettings?: {
     receiptPrinter: string;
     reportPrinter: string;
@@ -33,6 +34,7 @@ interface TopBarProps {
   onOpenAuthScreen: () => void;
   onLogout?: () => void;
   onOpenChangePassword?: () => void;
+  onOpenMfaSecurity?: () => void;
 }
 
 export default function TopBar({ 
@@ -45,6 +47,7 @@ export default function TopBar({
   isKeyboardOpen,
   setIsKeyboardOpen,
   onOpenPrinterSettings,
+  onOpenBarcodeHub,
   printerSettings,
   lowStockCount = 0,
   searchQuery,
@@ -54,7 +57,8 @@ export default function TopBar({
   onSwitchUser,
   onOpenAuthScreen,
   onLogout,
-  onOpenChangePassword
+  onOpenChangePassword,
+  onOpenMfaSecurity
 }: TopBarProps) {
   const { notifications, markAsRead, deleteNotification, markAllAsRead, clearAll } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
@@ -115,24 +119,37 @@ export default function TopBar({
           )}
         </div>
 
-        {/* Barcode Scanner Status */}
-        <button 
-          onClick={() => {
-            setIsInfoModalOpen(true);
-          }}
-          className={cn(
-            "hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border hover:shadow-md shrink-0",
-            scannerStatus === 'connected' ? "bg-green-50 text-green-600 border-green-100" :
-            scannerStatus === 'error' ? "bg-red-50 text-red-600 border-red-100" :
-            "bg-gray-50 text-gray-400 border-gray-100"
+        {/* Barcode Scanner Status & Barcode Studio Button */}
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+          <button 
+            onClick={() => {
+              setIsInfoModalOpen(true);
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border hover:shadow-md",
+              scannerStatus === 'connected' ? "bg-green-50 text-green-600 border-green-100" :
+              scannerStatus === 'error' ? "bg-red-50 text-red-600 border-red-100" :
+              "bg-gray-50 text-gray-400 border-gray-100"
+            )}
+          >
+            <Barcode size={13} className={cn(scannerStatus === 'connected' && "animate-pulse")} />
+            <span className="tracking-wider">
+              {scannerStatus === 'connected' ? t.scannerReady : 
+               scannerStatus === 'error' ? t.scannerError : t.scannerIdle}
+            </span>
+          </button>
+
+          {onOpenBarcodeHub && (
+            <button
+              onClick={onOpenBarcodeHub}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-xs"
+              title="Open Barcode & Thermal Tag Studio"
+            >
+              <Sparkles size={11} className="text-emerald-600" />
+              <span>Barcode Studio</span>
+            </button>
           )}
-        >
-          <Barcode size={13} className={cn(scannerStatus === 'connected' && "animate-pulse")} />
-          <span className="tracking-wider">
-            {scannerStatus === 'connected' ? t.scannerReady : 
-             scannerStatus === 'error' ? t.scannerError : t.scannerIdle}
-          </span>
-        </button>
+        </div>
 
         <InfoModal 
           isOpen={isInfoModalOpen}
@@ -168,6 +185,17 @@ export default function TopBar({
         )}
         
         <nav className="hidden xl:flex items-center gap-1 ml-4 border-l border-gray-100 pl-4">
+          {canAccessTab(currentUser.role, 'supplier-portal', currentUser.customAllowedTabs) && (
+            <button 
+              onClick={() => setActiveTab('supplier-portal')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all tracking-wider whitespace-nowrap",
+                activeTab === 'supplier-portal' ? "bg-rose-600 text-white shadow-md shadow-rose-600/20" : "text-gray-500 hover:bg-gray-100"
+              )}
+            >
+              Supplier Portal
+            </button>
+          )}
           {canAccessTab(currentUser.role, 'pos', currentUser.customAllowedTabs) && (
             <button 
               onClick={() => setActiveTab('pos')}
@@ -460,16 +488,30 @@ export default function TopBar({
                     <div className="font-extrabold text-slate-900 text-xs">{currentUser.name}</div>
                     <div className="text-[11px] text-slate-500">{currentUser.email}</div>
                     {currentUser.id !== 'guest' && onOpenChangePassword && (
-                      <button
-                        onClick={() => {
-                          setIsRoleDropdownOpen(false);
-                          onOpenChangePassword();
-                        }}
-                        className="w-full mt-1.5 py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <Key size={13} className="text-purple-600" />
-                        <span>Change Password (Account Owner)</span>
-                      </button>
+                      <div className="space-y-1 mt-1.5">
+                        <button
+                          onClick={() => {
+                            setIsRoleDropdownOpen(false);
+                            onOpenChangePassword();
+                          }}
+                          className="w-full py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <Key size={13} className="text-purple-600" />
+                          <span>Change Password (Owner)</span>
+                        </button>
+                        {onOpenMfaSecurity && (
+                          <button
+                            onClick={() => {
+                              setIsRoleDropdownOpen(false);
+                              onOpenMfaSecurity();
+                            }}
+                            className="w-full py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-200 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <ShieldCheck size={13} className="text-emerald-600" />
+                            <span>MFA & Security Center</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 

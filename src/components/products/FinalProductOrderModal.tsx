@@ -329,13 +329,17 @@ export default function FinalProductOrderModal({
             {/* Target Product Picker & Overview */}
             <div className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-200 shrink-0 p-0.5 shadow-xs">
-                  <img 
-                    src={activeProduct.image || `https://picsum.photos/seed/${activeProduct.name}/100`} 
-                    alt={activeProduct.name} 
-                    className="w-full h-full object-cover rounded-lg"
-                    referrerPolicy="no-referrer"
-                  />
+                <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-200 shrink-0 flex items-center justify-center p-0.5 shadow-xs">
+                  {activeProduct.image ? (
+                    <img 
+                      src={activeProduct.image} 
+                      alt={activeProduct.name} 
+                      className="w-full h-full object-cover rounded-lg"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <Package size={20} className="text-gray-400" />
+                  )}
                 </div>
                 <div className="space-y-0.5 flex-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase">Selected Product</label>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Package, DollarSign, Tag, Upload, Plus, Trash2, Flower2, Calendar, UserCheck, Palette, Hash, Sparkles, BookOpen, Warehouse } from 'lucide-react';
+import { X, Save, Package, DollarSign, Tag, Upload, Plus, Trash2, Flower2, Calendar, UserCheck, Palette, Hash, Sparkles, BookOpen, Warehouse, QrCode } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import Barcode from 'react-barcode';
 import { FinishedProduct, Category, Material } from '../../types';
 import { DEFAULT_FALLBACK_MATERIALS, FLORA_CATEGORIES, FLORA_EVENT_TYPES } from '../../constants';
 import { cn } from '../../lib/utils';
@@ -35,11 +36,16 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
   });
 
   const [keywordsInput, setKeywordsInput] = useState<string>('');
+  const [imageInputMode, setImageInputMode] = useState<'file' | 'url'>('file');
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (product) {
       setFormData(product);
       setKeywordsInput((product.keywords || []).join(', '));
+      if (product.image && product.image.startsWith('http')) {
+        setImageInputMode('url');
+      }
     } else {
       setFormData({
         name: '',
@@ -61,6 +67,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
         materials: []
       });
       setKeywordsInput('fresh, roses, gift, luxury');
+      setImageInputMode('file');
     }
   }, [product, isOpen, categories]);
 
@@ -69,10 +76,42 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result as string });
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFormData(prev => ({ ...prev, image: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const getEffectiveMaterials = () => {
@@ -142,7 +181,7 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
       stock: Number(formData.stock) >= 0 ? Number(formData.stock) : 0,
       minStock: Number(formData.minStock) || 0,
       barcode: formData.barcode || product?.id || `FP${Math.floor(1000 + Math.random() * 9000)}`,
-      image: formData.image || `https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=600`,
+      image: formData.image || '',
       size: formData.size,
       color: formData.color || 'Mixed',
       flowerType: formData.flowerType || 'Roses',
@@ -188,23 +227,95 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
-                    <Upload size={10} /> Product Image
-                  </label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square bg-white border-2 border-dashed border-sky-200 rounded-[1.8rem] flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-sky-500 hover:bg-sky-50/50 transition-all overflow-hidden group shadow-sm relative"
-                  >
-                    {formData.image ? (
-                      <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="text-center p-4">
-                        <Upload size={28} className="text-sky-400 group-hover:scale-110 transition-transform mx-auto mb-1" />
-                        <span className="text-xs font-bold text-slate-600 block">Click to upload image</span>
-                        <span className="text-[10px] text-slate-400">JPG, PNG, WebP supported</span>
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                      <Upload size={10} /> Product Image
+                    </label>
+
+                    {/* Mode Toggle */}
+                    <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-[9px] font-bold text-slate-600">
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode('file')}
+                        className={cn("px-2 py-0.5 rounded-md transition-all", imageInputMode === 'file' ? "bg-white text-slate-900 shadow-2xs" : "hover:text-slate-900")}
+                      >
+                        File Upload
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode('url')}
+                        className={cn("px-2 py-0.5 rounded-md transition-all", imageInputMode === 'url' ? "bg-white text-slate-900 shadow-2xs" : "hover:text-slate-900")}
+                      >
+                        Web URL
+                      </button>
+                    </div>
                   </div>
+
+                  {imageInputMode === 'file' ? (
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={cn(
+                        "aspect-square bg-white border-2 border-dashed rounded-[1.8rem] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden group shadow-2xs relative",
+                        isDragging ? "border-sky-500 bg-sky-50" : "border-sky-200 hover:border-sky-400 hover:bg-sky-50/40"
+                      )}
+                    >
+                      {formData.image ? (
+                        <>
+                          <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleRemoveImage}
+                              className="bg-rose-600 hover:bg-rose-700 text-white p-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-1"
+                              title="Remove image"
+                            >
+                              <Trash2 size={14} /> Clear Image
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-4">
+                          <Upload size={30} className="text-sky-500 group-hover:scale-110 transition-transform mx-auto mb-2" />
+                          <span className="text-xs font-bold text-slate-700 block">Drag & drop or click to upload</span>
+                          <span className="text-[10px] text-slate-400 mt-1 block">JPG, PNG, WebP supported</span>
+                          <span className="text-[9px] text-sky-600 font-semibold mt-2 inline-block bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                            No default image added
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="url"
+                          value={formData.image || ''}
+                          onChange={e => setFormData({ ...formData, image: e.target.value })}
+                          placeholder="Paste image URL (https://...)"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-sky-500 bg-white"
+                        />
+                      </div>
+                      {formData.image ? (
+                        <div className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 group">
+                          <img src={formData.image} alt="URL Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-lg shadow-md hover:bg-rose-700"
+                            title="Clear image URL"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-slate-400 italic">Enter a direct image link above for instant preview.</p>
+                      )}
+                    </div>
+                  )}
+
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                 </div>
 
@@ -387,6 +498,36 @@ export default function ProductModal({ isOpen, onClose, onSave, product, categor
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* Barcode & Scanning Code Section */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
+                      <QrCode size={13} className="text-sky-600" /> Barcode / SKU Code
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, barcode: `FLR-${Math.floor(100000 + Math.random() * 900000)}` })}
+                      className="text-[10px] font-black text-sky-600 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles size={11} /> Auto-Generate Barcode
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={formData.barcode || ''}
+                      onChange={e => setFormData({ ...formData, barcode: e.target.value })}
+                      className="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-sky-500"
+                      placeholder="e.g. FLR-839210"
+                    />
+                    {formData.barcode && (
+                      <div className="bg-white p-1 rounded-lg border border-slate-200 shrink-0">
+                        <Barcode value={formData.barcode} width={1} height={25} fontSize={9} />
+                      </div>
+                    )}
                   </div>
                 </div>
 

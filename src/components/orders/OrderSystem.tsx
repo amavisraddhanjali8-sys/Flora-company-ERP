@@ -137,14 +137,14 @@ export default function OrderSystem({
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="flex-1 bg-gray-50 p-4 overflow-hidden flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 bg-gray-50 p-3 sm:p-4 overflow-y-auto lg:overflow-hidden flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Order Management</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">Order Management</h1>
           <p className="text-xs text-gray-500">Track and manage clothing orders and lifecycles</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input 
               type="text" 
@@ -157,7 +157,7 @@ export default function OrderSystem({
           <select 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 focus:outline-none focus:border-primary transition-all"
+            className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 focus:outline-none focus:border-primary transition-all shrink-0"
           >
             <option value="All">All Status</option>
             {Object.keys(statusColors).map(s => <option key={s} value={s}>{s}</option>)}
@@ -165,10 +165,10 @@ export default function OrderSystem({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex gap-4">
+      <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row gap-4">
         <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto overflow-y-auto flex-1 w-full">
+            <table className="w-full text-left border-collapse min-w-[650px]">
               <thead className="bg-gray-50 sticky top-0 z-10 border-b border-gray-100">
                 <tr>
                   <th className="px-6 py-2 text-[10px] font-bold text-gray-400">Order #</th>

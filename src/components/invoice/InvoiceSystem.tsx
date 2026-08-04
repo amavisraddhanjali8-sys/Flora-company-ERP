@@ -328,13 +328,13 @@ export default function InvoiceSystem({
   return (
     <div className="flex-1 bg-gray-50 flex flex-col overflow-hidden">
       {view === 'list' ? (
-        <div className="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto">
-          <div className="flex justify-between items-end">
+        <div className="flex-1 flex flex-col p-3 sm:p-4 space-y-4 overflow-y-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h1 className="text-xl font-black text-gray-900 tracking-tight">{t.invoicePortal}</h1>
+              <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">{t.invoicePortal}</h1>
               <p className="text-xs text-gray-500 font-medium">{t.manageInvoices}</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button 
                 onClick={() => { 
                   setEditingInvoice(null); 
@@ -345,24 +345,24 @@ export default function InvoiceSystem({
                   setOtherCharges(0);
                   setIsFormModalOpen(true); 
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 shadow-lg shadow-primary/20"
+                className="flex items-center justify-center gap-2 px-3.5 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 shrink-0"
               >
                 <Plus size={16} /> {t.createInvoice}
               </button>
-              <div className="relative">
+              <div className="relative flex-1 sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input 
                   type="text"
                   placeholder={t.searchInvoices}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary transition-all w-64"
+                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-primary transition-all w-full"
                 />
               </div>
               <select 
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary transition-all font-bold text-gray-600"
+                className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-primary transition-all font-bold text-gray-600 shrink-0"
               >
                 <option value="All">{t.allStatus || 'All Status'}</option>
                 <option value="Draft">{t.draft}</option>
@@ -374,28 +374,29 @@ export default function InvoiceSystem({
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {[
               { label: t.totalInvoiced, value: invoices.reduce((sum, inv) => sum + inv.total, 0), icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: t.totalCollected, value: invoices.reduce((sum, inv) => sum + inv.amountPaid, 0), icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
               { label: t.pendingBalance, value: invoices.reduce((sum, inv) => sum + inv.balance, 0), icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: t.overdueAmount, value: invoices.filter(inv => inv.status === 'Overdue').reduce((sum, inv) => sum + inv.balance, 0), icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
             ].map((stat, i) => (
-              <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={cn("p-2 rounded-lg", stat.bg)}>
-                    <stat.icon size={18} className={stat.color} />
+              <div key={i} className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className={cn("p-1.5 rounded-lg shrink-0", stat.bg)}>
+                    <stat.icon size={16} className={stat.color} />
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400">{stat.label}</span>
+                  <span className="text-[10px] font-bold text-gray-400 truncate">{stat.label}</span>
                 </div>
-                <p className="text-lg font-black text-gray-900">{formatCurrency(stat.value)}</p>
+                <p className="text-base sm:text-lg font-black text-gray-900 truncate">{formatCurrency(stat.value)}</p>
               </div>
             ))}
           </div>
 
           {/* Invoice Table */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[650px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-400">{t.invoiceNumber}</th>
@@ -510,6 +511,7 @@ export default function InvoiceSystem({
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">

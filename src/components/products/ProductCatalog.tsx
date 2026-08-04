@@ -79,6 +79,7 @@ export default function ProductCatalog({
       const matchesSearch = !searchLower || 
         p.name.toLowerCase().includes(searchLower) ||
         p.id.toLowerCase().includes(searchLower) ||
+        (p.barcode && p.barcode.toLowerCase().includes(searchLower)) ||
         p.category.toLowerCase().includes(searchLower) ||
         (p.description && p.description.toLowerCase().includes(searchLower)) ||
         (p.occasion && p.occasion.toLowerCase().includes(searchLower)) ||
@@ -209,7 +210,7 @@ export default function ProductCatalog({
         </div>
 
         {/* Analytics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <Layers size={20} />
@@ -506,13 +507,17 @@ export default function ProductCatalog({
                     <React.Fragment key={p.id}>
                       <tr className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-3">
-                          <div className="w-10 h-10 bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm p-0.5">
-                            <img 
-                              src={p.image || `https://picsum.photos/seed/${p.name}/100`} 
-                              alt={p.name} 
-                              className="w-full h-full object-cover rounded-md"
-                              referrerPolicy="no-referrer"
-                            />
+                          <div className="w-10 h-10 bg-gray-50 rounded-lg overflow-hidden border border-gray-200/80 shadow-2xs flex items-center justify-center p-0.5">
+                            {p.image ? (
+                              <img 
+                                src={p.image} 
+                                alt={p.name} 
+                                className="w-full h-full object-cover rounded-md"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <Package size={18} className="text-gray-400" />
+                            )}
                           </div>
                         </td>
 
@@ -527,8 +532,13 @@ export default function ProductCatalog({
                                 {p.status}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                               <span className="text-[9px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded-md">SKU: {p.id}</span>
+                              {p.barcode && (
+                                <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                  {p.barcode}
+                                </span>
+                              )}
                               <span className="text-[9px] font-bold text-gray-400">{p.category}</span>
                             </div>
                           </div>
