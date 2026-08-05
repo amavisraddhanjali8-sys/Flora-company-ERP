@@ -106,7 +106,7 @@ app.post('/api/send-email', async (req, res) => {
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
     const smtpPort = Number(process.env.SMTP_PORT) || 587;
-    const fromAddress = process.env.SMTP_FROM || '"Flora & Verdant Security" <no-reply@verdantflora.com>';
+    const fromAddress = process.env.SMTP_FROM || '"Flora & Verdant Security" <sevenignito@gmail.com>';
 
     let deliveryMethod = 'automated_service';
 
